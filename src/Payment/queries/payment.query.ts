@@ -3,7 +3,15 @@ import { PrismaService } from "@/Prisma/prisma.service";
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { VnpayService } from "nestjs-vnpay";
-import { BuildPaymentUrl, ReturnQueryFromVNPay, dateFormat } from "vnpay";
+import { BuildPaymentUrl, ReturnQueryFromVNPay } from "vnpay";
+
+// Dayjs for timezone handling
+import dayjs from 'dayjs';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class PaymentQuery {
@@ -16,26 +24,30 @@ export class PaymentQuery {
   ) {
     this.returnUrl = this.configService.get('vnpay.returnUrl') as string;
   }
+
   async buildPaymentUrl(params: BuildPaymentParams) {
-    const now = new Date();
-    const expireDate = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
+    // Lấy thời gian theo giờ Việt Nam
+    const now = dayjs().tz('Asia/Ho_Chi_Minh');
+    const expireDate = now.add(15, 'minute');
+
     const paymentParams: BuildPaymentUrl = {
       vnp_Amount: params.amount,
       vnp_OrderInfo: params.orderInfo,
       vnp_TxnRef: params.orderId,
       vnp_IpAddr: params.ipAddr,
       vnp_ReturnUrl: this.returnUrl,
-      vnp_CreateDate: dateFormat(now),
-      vnp_ExpireDate: dateFormat(expireDate),
-    }
-    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ paymentParams:", paymentParams)
+      vnp_CreateDate: parseInt(now.format('YYYYMMDDHHmmss')),
+      vnp_ExpireDate: parseInt(expireDate.format('YYYYMMDDHHmmss')),
+    };
+
+    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ paymentParams:", paymentParams);
+
     const url = this.vnpayService.buildPaymentUrl(paymentParams);
-    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ url:", url)
+    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ url:", url);
     return url;
   }
 
   async verifyReturnUrl(params: ReturnQueryFromVNPay) {
     return await this.vnpayService.verifyReturnUrl(params);
   }
-
 }
