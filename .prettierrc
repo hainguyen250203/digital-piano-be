@@ -1,0 +1,33 @@
+{
+  "singleQuote": true,
+  "tabWidth": 2,
+  "printWidth": 200,
+  "semi": false,
+  "useTabs": false,
+  "proseWrap": "never",
+  "arrowParens": "avoid",
+  "trailingComma": "none",
+  "bracketSpacing": true,
+  "jsxSingleQuote": true,
+  "quoteProps": "consistent",
+  "overrides": [
+    {
+      "files": "*.ts",
+      "options": {
+        "printWidth": 300
+      }
+    },
+    {
+      "files": "*.json",
+      "options": {
+        "printWidth": 80
+      }
+    },
+    {
+      "files": "*.md",
+      "options": {
+        "printWidth": 80
+      }
+    }
+  ]
+}

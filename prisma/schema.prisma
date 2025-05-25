@@ -1,0 +1,386 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  staff
+  customer
+  admin
+}
+
+enum OrderStatus {
+  pending
+  processing
+  shipping
+  delivered
+  cancelled
+  returned
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
+  refunded
+  failed
+}
+
+enum PaymentMethod {
+  cash
+  vnpay
+}
+
+enum DiscountType {
+  percentage
+  fixed
+}
+
+enum ProductReturnStatus {
+  pending
+  approved
+  rejected
+  completed
+}
+
+enum ChangeType {
+  import
+  sale
+  return
+  cancel
+  adjustment
+}
+
+enum ReferenceType {
+  invoice
+  order
+  product_return
+  manual
+}
+
+enum NotificationType {
+  order
+  promotion
+  system
+  review
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique @db.VarChar(255)
+  password     String    @db.VarChar(255)
+  avatarUrl    String?   @db.Text
+  phoneNumber  String?   @unique @db.VarChar(20)
+  role         Role
+  otpCode      Int?
+  otpSecret    String?
+  count        Int?
+  isBlock      Boolean   @default(false)
+  isDeleted    Boolean   @default(false)
+  otpExpiredAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  addresses     Address[]
+  reviews       Review[]
+  cart          Cart? // Renamed from Carts to Cart
+  orders        Order[]
+  wishlists     Wishlist[] // Renamed from Wishlists to Wishlist
+  notifications Notification[]
+
+  @@unique([email, phoneNumber])
+}
+
+model Address {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  fullName  String   @db.VarChar(100) // Họ tên người nhận
+  phone     String?  @db.VarChar(20)
+  street    String?  @db.VarChar(255)
+  ward      String?  @db.VarChar(100)
+  district  String?  @db.VarChar(100)
+  city      String?  @db.VarChar(100)
+  isDefault Boolean  @default(false)
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Category {
+  id            String        @id @default(uuid())
+  name          String        @unique @db.VarChar(100)
+  isDeleted     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  subCategories SubCategory[]
+}
+
+model SubCategory {
+  id           String        @id @default(uuid())
+  name         String        @unique()
+  isDeleted    Boolean       @default(false)
+  category     Category      @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  productTypes ProductType[]
+  products     Product[]
+}
+
+model ProductType {
+  id            String      @id @default(uuid())
+  subCategoryId String
+  name          String
+  isDeleted     Boolean     @default(false)
+  subCategory   SubCategory @relation(fields: [subCategoryId], references: [id])
+  products      Product[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
+
+  @@unique([subCategoryId, name])
+}
+
+model Product {
+  id             String        @id @default(uuid())
+  name           String        @unique @db.VarChar(255)
+  description    Json?         @db.Json
+  price          Int
+  salePrice      Int?
+  videoUrl       String?       @db.VarChar(255)
+  defaultImage   Image?        @relation("DefaultImage", fields: [defaultImageId], references: [id])
+  defaultImageId String?       @unique
+  isHotSale      Boolean       @default(false)
+  isFeatured     Boolean       @default(false)
+  isDeleted      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  subCategory    SubCategory   @relation(fields: [subCategoryId], references: [id])
+  subCategoryId  String
+  productType    ProductType?  @relation(fields: [productTypeId], references: [id])
+  productTypeId  String?
+  brand          Brand?        @relation(fields: [brandId], references: [id])
+  brandId        String?
+  images         Image[] // Renamed from Images
+  reviews        Review[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
+  invoiceItems   InvoiceItem[]
+  stock          Stock? // Renamed from Stocks
+  wishlists      Wishlist[]
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  rating    Int
+  content   String?  @db.Text
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  name      String    @unique @db.VarChar(100)
+  isDeleted Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Image {
+  id                String   @id @default(uuid())
+  url               String   @db.Text
+  productId         String
+  product           Product  @relation(fields: [productId], references: [id])
+  defaultForProduct Product? @relation("DefaultImage")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  user      User       @relation(fields: [userId], references: [id])
+  userId    String     @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([id, userId])
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  cartId    String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id             String          @id @default(uuid())
+  user           User            @relation(fields: [userId], references: [id])
+  userId         String
+  address        Address         @relation(fields: [addressId], references: [id])
+  addressId      String
+  discount       Discount?       @relation(fields: [discountId], references: [id])
+  discountId     String?
+  orderStatus    OrderStatus     @default(pending)
+  paymentStatus  PaymentStatus   @default(unpaid)
+  paymentMethod  PaymentMethod
+  transactionId  String?         @db.VarChar(255)
+  paidAt         DateTime?
+  discountAmount Int?
+  orderTotal     Int
+  shippingFee    Int?
+  note           String?         @db.Text
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  items          OrderItem[]
+  returns        ProductReturn[]
+}
+
+model OrderItem {
+  id        String          @id @default(uuid())
+  order     Order           @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product         @relation(fields: [productId], references: [id])
+  productId String
+  price     Int
+  quantity  Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  returns   ProductReturn[]
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  product   Product? @relation(fields: [productId], references: [id])
+  productId String?
+  createdAt DateTime @default(now())
+}
+
+model Supplier {
+  id          String    @id @default(uuid())
+  name        String    @unique @db.VarChar(200)
+  email       String?   @db.VarChar(255)
+  phoneNumber String?   @db.VarChar(20)
+  address     String?   @db.Text
+  isDeleted   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  invoices    Invoice[]
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  supplier    Supplier      @relation(fields: [supplierId], references: [id])
+  supplierId  String
+  totalAmount Int
+  note        String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  isDeleted   Boolean       @default(false)
+  items       InvoiceItem[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  quantity    Int
+  importPrice Int
+  subtotal    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Stock {
+  id        String     @id @default(uuid())
+  productId String     @unique
+  product   Product    @relation(fields: [productId], references: [id])
+  quantity  Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  logs      StockLog[]
+}
+
+model Notification {
+  id        String            @id @default(uuid())
+  user      User?             @relation(fields: [userId], references: [id])
+  userId    String?
+  title     String            @db.VarChar(255)
+  content   String?           @db.Text
+  type      NotificationType?
+  isRead    Boolean           @default(false)
+  isDeleted Boolean           @default(false)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model Discount {
+  id               String       @id @default(uuid())
+  code             String       @unique @db.VarChar(50)
+  description      String?      @db.Text
+  discountType     DiscountType @default(fixed)
+  value            Int
+  startDate        DateTime?
+  endDate          DateTime?
+  maxUses          Int?
+  minOrderTotal    Int?
+  maxDiscountValue Int?
+  usedCount        Int          @default(0)
+  isActive         Boolean      @default(true)
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  orders Order[]
+}
+
+model ProductReturn {
+  id                  String              @id @default(uuid())
+  order               Order               @relation(fields: [orderId], references: [id])
+  orderId             String
+  orderItem           OrderItem           @relation(fields: [orderItemId], references: [id])
+  orderItemId         String
+  reason              String?             @db.Text
+  refundAmount        Int?
+  productReturnStatus ProductReturnStatus
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
+model StockLog {
+  id            String         @id @default(uuid())
+  stockId       String
+  stock         Stock          @relation(fields: [stockId], references: [id])
+  change        Int
+  changeType    ChangeType
+  referenceType ReferenceType?
+  referenceId   String?
+  note          String?        @db.Text
+  createdAt     DateTime       @default(now())
+}
