@@ -15,6 +15,7 @@ import { PrismaModule } from '@/Prisma/prisma.module';
 import { ProductModule } from '@/Product/product.module';
 import { ProductTypeModule } from '@/ProductType/product-type.module';
 import { ProfileModule } from '@/Profile/profile.module';
+import { StatisticalModule } from '@/Statistical/statistical.module';
 import { SubCategoryModule } from '@/SubCategory//sub-category.module';
 import { SupplierModule } from '@/Supplier/supplier.module';
 import { UserModule } from '@/User/user.module';
@@ -26,7 +27,7 @@ import { Module } from '@nestjs/common';
     ProfileModule, CategoryModule, SubCategoryModule, BrandModule, ProductTypeModule,
     ProductModule, SupplierModule, InvoiceModule, CartModule, WishlistModule,
     DiscountModule, UserModule, AddressModule, NotificationModule, OrderModule,
-    PaymentModule,
+    PaymentModule, StatisticalModule
   ],
   controllers: [AppController]
 })
