@@ -15,6 +15,23 @@ export class ResOrderItemDto {
   quantity: number;
 }
 
+export class ResReviewDto {
+  @ApiProperty({ description: 'Review ID' })
+  id: string;
+
+  @ApiProperty({ description: 'Rating' })
+  rating: number;
+
+  @ApiProperty({ description: 'Content' })
+  content: string;
+
+  @ApiProperty({ description: 'Created at' })
+  createdAt: Date;
+
+  @ApiProperty({ description: 'Updated at' })
+  updatedAt: Date;
+}
+
 export class ResOrderDto {
   @ApiProperty({ description: 'Order ID' })
   id: string;
@@ -66,4 +83,7 @@ export class ResOrderDto {
 
   @ApiProperty({ description: 'Payment url', required: false })
   paymentUrl?: string;
+
+  @ApiProperty({ description: 'Reviews', type: [ResReviewDto] })
+  reviews: ResReviewDto[];
 } 

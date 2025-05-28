@@ -7,21 +7,21 @@ import { RevenueStatisticsAction } from '@/Statistical/actions/revenue-statistic
 import { SalesStatisticsAction } from '@/Statistical/actions/sales-statistics.action';
 import { StockStatisticsAction } from '@/Statistical/actions/stock-statistics.action';
 import { UserStatisticsAction } from '@/Statistical/actions/user-statistics.action';
+import { ProductStatisticsResponseDto } from '@/Statistical/api/dto/res-product-statistics.dto';
+import { RevenueStatisticsResponseDto } from '@/Statistical/api/dto/res-revenue-statistics.dto';
+import { SalesStatisticsResponseDto } from '@/Statistical/api/dto/res-sales-statistics.dto';
+import { UserStatisticsResponseDto } from '@/Statistical/api/dto/res-user-statistics.dto';
 import { StatisticalQuery } from '@/Statistical/queries/statistical.query';
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ClassSerializerInterceptor, Controller, Get, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
-import { GetProductStatisticsDto } from './dto/get-product-statistics.dto';
-import { GetRevenueStatisticsDto } from './dto/get-revenue-statistics.dto';
-import { GetSalesStatisticsDto } from './dto/get-sales-statistics.dto';
-import { GetStockStatisticsDto } from './dto/get-stock-statistics.dto';
-import { GetUserStatisticsDto } from './dto/get-user-statistics.dto';
 
 @ApiTags('Thống kê')
 @Controller({
   path: 'statistical',
   version: '1',
 })
+@UseInterceptors(ClassSerializerInterceptor)
 export class StatisticalController {
   constructor(
     private readonly salesStatisticsAction: SalesStatisticsAction,
@@ -40,15 +40,11 @@ export class StatisticalController {
   @ApiResponse({
     status: 200,
     description: 'Dữ liệu thống kê bán hàng đã được trả về thành công',
-    type: SuccessResponseDto
+    type: SalesStatisticsResponseDto
   })
   @ApiResponse({ status: 401, description: 'Không có quyền truy cập' })
-  async getSalesStatistics(@Query() query: GetSalesStatisticsDto) {
-    const data = await this.salesStatisticsAction.execute({
-      ...query,
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
-    });
+  async getSalesStatistics() {
+    const data = await this.salesStatisticsAction.execute();
     return new SuccessResponseDto('Lấy dữ liệu thống kê bán hàng thành công', data);
   }
 
@@ -60,15 +56,11 @@ export class StatisticalController {
   @ApiResponse({
     status: 200,
     description: 'Dữ liệu thống kê sản phẩm đã được trả về thành công',
-    type: SuccessResponseDto,
+    type: ProductStatisticsResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Không có quyền truy cập' })
-  async getProductStatistics(@Query() query: GetProductStatisticsDto) {
-    const data = await this.productStatisticsAction.execute({
-      ...query,
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
-    });
+  async getProductStatistics() {
+    const data = await this.productStatisticsAction.execute();
     return new SuccessResponseDto('Lấy dữ liệu thống kê sản phẩm thành công', data);
   }
 
@@ -80,15 +72,11 @@ export class StatisticalController {
   @ApiResponse({
     status: 200,
     description: 'Dữ liệu thống kê người dùng đã được trả về thành công',
-    type: SuccessResponseDto,
+    type: UserStatisticsResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Không có quyền truy cập' })
-  async getUserStatistics(@Query() query: GetUserStatisticsDto) {
-    const data = await this.userStatisticsAction.execute({
-      ...query,
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
-    });
+  async getUserStatistics() {
+    const data = await this.userStatisticsAction.execute();
     return new SuccessResponseDto('Lấy dữ liệu thống kê người dùng thành công', data);
   }
 
@@ -100,15 +88,11 @@ export class StatisticalController {
   @ApiResponse({
     status: 200,
     description: 'Dữ liệu thống kê doanh thu đã được trả về thành công',
-    type: SuccessResponseDto
+    type: RevenueStatisticsResponseDto
   })
   @ApiResponse({ status: 401, description: 'Không có quyền truy cập' })
-  async getRevenueStatistics(@Query() query: GetRevenueStatisticsDto) {
-    const data = await this.revenueStatisticsAction.execute({
-      ...query,
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
-    });
+  async getRevenueStatistics() {
+    const data = await this.revenueStatisticsAction.execute();
     return new SuccessResponseDto('Lấy dữ liệu thống kê doanh thu thành công', data);
   }
 
@@ -123,8 +107,8 @@ export class StatisticalController {
     type: SuccessResponseDto
   })
   @ApiResponse({ status: 401, description: 'Không có quyền truy cập' })
-  async getStockStatistics(@Query() query: GetStockStatisticsDto) {
-    const data = await this.stockStatisticsAction.execute(query);
+  async getStockStatistics() {
+    const data = await this.stockStatisticsAction.execute();
     return new SuccessResponseDto('Lấy dữ liệu thống kê tồn kho thành công', data);
   }
 

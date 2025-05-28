@@ -30,9 +30,37 @@ export class OrderQuery {
                 id: true,
                 name: true,
                 defaultImage: true,
+                reviews: true,
               }
             }
           }
+        },
+        address: true,
+        discount: true,
+        user: true,
+      }
+    });
+  }
+
+  async getOrderDetailByUserId(orderId: string, userId: string) {
+    return this.prisma.order.findUnique({
+      where: { id: orderId, userId },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                defaultImage: true,
+                reviews: {
+                  where: {
+                    userId: userId,
+                  }
+                }
+              }
+            }
+          },
         },
         address: true,
         discount: true,

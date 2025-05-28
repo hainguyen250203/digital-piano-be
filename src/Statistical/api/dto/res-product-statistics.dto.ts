@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Expose } from 'class-transformer';
 
 class ProductBasicInfo {
   @ApiProperty({ description: 'ID sản phẩm', example: 'a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6' })
@@ -56,36 +57,21 @@ class SubCategorySaleInfo {
   totalRevenue: number;
 }
 
-class ProductStatisticsData {
+export class ProductStatisticsResponseDto {
   @ApiProperty({ type: [ProductSaleInfo], description: 'Sản phẩm bán chạy nhất' })
+  @Expose()
   bestSellingProducts: ProductSaleInfo[];
 
   @ApiProperty({ type: [CategorySaleInfo], description: 'Doanh số theo danh mục' })
+  @Expose()
   salesByCategory: CategorySaleInfo[];
 
   @ApiProperty({ type: [SubCategorySaleInfo], description: 'Doanh số theo danh mục con' })
+  @Expose()
   salesBySubCategory: SubCategorySaleInfo[];
 
   @ApiProperty({ type: [ProductSaleInfo], description: 'Sản phẩm có doanh thu cao nhất' })
+  @Expose()
   highestRevenueProducts: ProductSaleInfo[];
 }
 
-export class ProductStatisticsResponseDto {
-  @ApiProperty({ description: 'Ngày bắt đầu thống kê', example: '2023-01-01T00:00:00.000Z' })
-  startDate: Date;
-
-  @ApiProperty({ description: 'Ngày kết thúc thống kê', example: '2023-12-31T23:59:59.000Z' })
-  endDate: Date;
-
-  @ApiProperty({ description: 'Khoảng thời gian thống kê', example: 'month' })
-  period: string;
-
-  @ApiProperty({ description: 'ID danh mục để lọc (nếu có)', example: 'a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6' })
-  categoryId?: string;
-
-  @ApiProperty({ description: 'ID danh mục con để lọc (nếu có)', example: 'a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6' })
-  subCategoryId?: string;
-
-  @ApiProperty({ type: ProductStatisticsData })
-  data: ProductStatisticsData;
-} 

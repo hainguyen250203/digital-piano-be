@@ -1,40 +1,33 @@
 import { PrismaService } from '@/Prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { ChangeType } from '@prisma/client';
-import { StockSortType } from '../api/dto/get-stock-statistics.dto';
-import { GetStockStatisticsParams } from '../queries/params/get-statistics.params';
 
 @Injectable()
 export class StockStatisticsAction {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
-  async execute(params: GetStockStatisticsParams) {
-    const { sortBy } = params;
+  async execute() {
 
-    const stockData = await this.getStockData(sortBy);
-    
-    return {
-      sortBy: sortBy || StockSortType.LOW_STOCK,
-      data: stockData,
-    };
+    return await this.getStockData();
+
   }
 
-  private async getStockData(sortBy?: StockSortType) {
+  private async getStockData() {
     // Get stock levels for products
-    const stockLevels = await this.getStockLevels(sortBy);
-    
+    const stockLevels = await this.getStockLevels();
+
     // Get stock movement (changes over time)
     const stockMovement = await this.getStockMovement();
-    
+
     // Get out of stock products
     const outOfStockProducts = await this.getOutOfStockProducts();
-    
+
     // Get low stock products
     const lowStockProducts = await this.getLowStockProducts();
-    
+
     // Get import value information
     const importValueData = await this.getImportValueData();
-    
+
     return {
       stockLevels,
       stockMovement,
@@ -48,27 +41,10 @@ export class StockStatisticsAction {
     };
   }
 
-  private async getStockLevels(
-    sortBy?: StockSortType,
-    limit = 10
-  ) {
+  private async getStockLevels() {
     let orderBy: any = {};
-    
-    switch (sortBy) {
-      case StockSortType.LOW_STOCK:
-        orderBy = { quantity: 'asc' };
-        break;
-      case StockSortType.HIGH_STOCK:
-        orderBy = { quantity: 'desc' };
-        break;
-      case StockSortType.MOST_CHANGED:
-        // This requires more complex logic with StockLog
-        // Default to low stock for now
-        orderBy = { quantity: 'asc' };
-        break;
-      default:
-        orderBy = { quantity: 'asc' };
-    }
+
+    orderBy = { quantity: 'asc' };
 
     const stocks = await this.prisma.stock.findMany({
       where: {
@@ -98,7 +74,7 @@ export class StockStatisticsAction {
         },
       },
       orderBy,
-      take: limit,
+
     });
 
     return stocks.map(stock => ({
@@ -142,7 +118,6 @@ export class StockStatisticsAction {
           },
         },
       },
-      take: limit,
     });
   }
 
@@ -181,7 +156,6 @@ export class StockStatisticsAction {
       orderBy: {
         quantity: 'asc',
       },
-      take: limit,
     });
   }
 
@@ -210,7 +184,6 @@ export class StockStatisticsAction {
       orderBy: {
         createdAt: 'desc',
       },
-      take: limit,
     });
 
     // Group by change type and calculate totals
@@ -259,22 +232,22 @@ export class StockStatisticsAction {
   private async getImportValueData() {
     // Get total import value from invoices
     const totalImportValue = await this.getTotalImportValue();
-    
+
     // Get total import quantity
     const totalImportQuantity = await this.getTotalImportQuantity();
-    
+
     // Get total sales quantity
     const totalSalesQuantity = await this.getTotalSalesQuantity();
-    
+
     // Get total returns quantity
     const totalReturnsQuantity = await this.getTotalReturnsQuantity();
-    
+
     // Get recent invoices with their values
     const recentInvoices = await this.getRecentInvoices();
-    
+
     // Get top products by import value
     const topProductsByImportValue = await this.getTopProductsByImportValue();
-    
+
     return {
       totalImportValue,
       totalImportQuantity,
@@ -294,7 +267,7 @@ export class StockStatisticsAction {
         isDeleted: false,
       },
     });
-    
+
     return Number(result._sum.totalAmount || 0);
   }
 
@@ -310,7 +283,7 @@ export class StockStatisticsAction {
         },
       },
     });
-    
+
     return Number(result._sum.quantity || 0);
   }
 
@@ -328,7 +301,7 @@ export class StockStatisticsAction {
         },
       },
     });
-    
+
     return Number(result._sum.quantity || 0);
   }
 
@@ -341,7 +314,7 @@ export class StockStatisticsAction {
         productReturnStatus: 'completed',
       },
     });
-    
+
     return Number(result._count.id || 0);
   }
 
@@ -361,9 +334,8 @@ export class StockStatisticsAction {
       orderBy: {
         createdAt: 'desc',
       },
-      take: limit,
     });
-    
+
     return invoices.map(invoice => ({
       id: invoice.id,
       supplierId: invoice.supplierId,
@@ -390,9 +362,8 @@ export class StockStatisticsAction {
           subtotal: 'desc',
         },
       },
-      take: limit,
     });
-    
+
     // Get product information for these items
     const productIds = result.map(item => item.productId);
     const products = await this.prisma.product.findMany({
@@ -407,7 +378,7 @@ export class StockStatisticsAction {
         name: true,
       },
     });
-    
+
     return result.map(item => {
       const product = products.find(p => p.id === item.productId);
       return {
@@ -415,8 +386,8 @@ export class StockStatisticsAction {
         productName: product?.name || 'Unknown Product',
         totalImportValue: Number(item._sum.subtotal || 0),
         totalQuantity: Number(item._sum.quantity || 0),
-        averageImportPrice: item._sum.quantity 
-          ? Math.round(Number(item._sum.subtotal) / Number(item._sum.quantity)) 
+        averageImportPrice: item._sum.quantity
+          ? Math.round(Number(item._sum.subtotal) / Number(item._sum.quantity))
           : 0,
       };
     });

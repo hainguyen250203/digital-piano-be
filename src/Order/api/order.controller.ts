@@ -8,9 +8,10 @@ import { CreateOrderAction } from "@/Order/actions/create-order.action";
 import { RepaymentAction } from "@/Order/actions/repayment.action";
 import { UpdateStatusOrderAction } from "@/Order/actions/update-status-order.action";
 import { UserCancelOrderAction } from "@/Order/actions/user-cancel-order.action";
-import { UserConfirmDeliveryAction } from "@/Order/actions/user-confirm-delivery.action";
 import { UserChangePaymentMethodAction } from "@/Order/actions/user-change-payment-method.action";
-    import { VerifyReturnUrlAction } from "@/Order/actions/verify-return-url.action";
+import { UserConfirmDeliveryAction } from "@/Order/actions/user-confirm-delivery.action";
+import { VerifyReturnUrlAction } from "@/Order/actions/verify-return-url.action";
+import { ReqChangePaymentMethodDto } from "@/Order/api/dto/req-change-payment-method.dto";
 import { ReqUpdateOrderStatusDto } from "@/Order/api/dto/req-update-order-status.dto";
 import { ReqCreateOrderDto } from "@/Order/api/dto/reqCreateOrder.dto";
 import { ResRepaymentDto } from "@/Order/api/dto/res-repayment.dto";
@@ -23,7 +24,6 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from "@nestjs/swagg
 import { Role } from "@prisma/client";
 import { plainToInstance } from "class-transformer";
 import { Request } from 'express';
-import { ReqChangePaymentMethodDto } from "@/Order/api/dto/req-change-payment-method.dto";
 
 @Controller({
   path: 'orders',
@@ -74,8 +74,19 @@ export class OrderController {
     return new SuccessResponseDto('Danh sách đơn hàng', plainToInstance(ResOrderDto, orders));
   }
 
-  @Get(':id')
+  @Get("me/:orderId")
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Lấy thông tin đơn hàng của người dùng' })
+  @ApiResponse({ type: ResOrderDto })
+  async getOrderDetailByUserId(@Param('orderId') orderId: string, @GetUser('userId') userId: string) {
+    const order = await this.orderQuery.getOrderDetailByUserId(orderId, userId);
+    return new SuccessResponseDto('Thông tin đơn hàng', order);
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.admin, Role.staff)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lấy thông tin đơn hàng' })
   @ApiResponse({ status: 200, description: 'Thông tin đơn hàng' })
@@ -164,5 +175,5 @@ export class OrderController {
   async userChangePaymentMethod(@Param('id') id: string, @GetUser('userId') userId: string, @Body() body: ReqChangePaymentMethodDto) {
     const order = await this.userChangePaymentMethodAction.execute(id, userId, body.paymentMethod);
     return new SuccessResponseDto('Phương thức thanh toán đã được thay đổi', plainToInstance(ResOrderDto, order));
-  } 
+  }
 }

@@ -36,7 +36,7 @@ class UserSpendingInfo {
   totalSpending: number;
 }
 
-class UserStatisticsData {
+export class UserStatisticsResponseDto {
   @ApiProperty({ description: 'Tổng số người dùng mới', example: 125 })
   totalNewUsers: number;
 
@@ -53,16 +53,3 @@ class UserStatisticsData {
   topCustomersBySpending: UserSpendingInfo[];
 }
 
-export class UserStatisticsResponseDto {
-  @ApiProperty({ description: 'Ngày bắt đầu thống kê', example: '2023-01-01T00:00:00.000Z' })
-  startDate: Date;
-
-  @ApiProperty({ description: 'Ngày kết thúc thống kê', example: '2023-12-31T23:59:59.000Z' })
-  endDate: Date;
-
-  @ApiProperty({ description: 'Khoảng thời gian thống kê', example: 'month' })
-  period: string;
-
-  @ApiProperty({ type: UserStatisticsData })
-  data: UserStatisticsData;
-} 
