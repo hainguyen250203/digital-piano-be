@@ -1,5 +1,6 @@
 import { PrismaService } from '@/Prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class UserStatisticsAction {
@@ -37,15 +38,15 @@ export class UserStatisticsAction {
     // Khách hàng có nhiều đơn hàng nhất
     const topCustomersByOrderCount = await this.prisma.user.findMany({
       where: {
-        orders: { some: {} },
+        orders: { some: { orderStatus: OrderStatus.delivered } },
       },
       select: {
         id: true,
         email: true,
         phoneNumber: true,
         avatarUrl: true,
-        _count: {
-          select: { orders: true },
+        orders: {
+          where: { orderStatus: OrderStatus.delivered },
         },
       },
       orderBy: {
@@ -57,7 +58,7 @@ export class UserStatisticsAction {
     // Khách hàng chi tiêu nhiều nhất
     const topCustomersBySpendingRaw = await this.prisma.user.findMany({
       where: {
-        orders: { some: {} },
+        orders: { some: { orderStatus: OrderStatus.delivered } },
       },
       select: {
         id: true,
@@ -65,6 +66,7 @@ export class UserStatisticsAction {
         phoneNumber: true,
         avatarUrl: true,
         orders: {
+          where: { orderStatus: OrderStatus.delivered },
           select: { orderTotal: true },
         },
       },
@@ -84,7 +86,7 @@ export class UserStatisticsAction {
     // Tổng số người dùng có đơn hàng (active)
     const activeUsers = await this.prisma.user.findMany({
       where: {
-        orders: { some: {} },
+        orders: { some: { orderStatus: OrderStatus.delivered } },
       },
     });
 
@@ -97,7 +99,7 @@ export class UserStatisticsAction {
         email: user.email,
         phoneNumber: user.phoneNumber,
         avatarUrl: user.avatarUrl,
-        orderCount: user._count.orders,
+        orderCount: user.orders.length,
       })),
       topCustomersBySpending,
     };

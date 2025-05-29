@@ -4,7 +4,7 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class StatisticalQuery {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async getDashboardStatistics() {
     const today = new Date();
@@ -36,32 +36,32 @@ export class StatisticalQuery {
       this.prisma.user.count(),
       this.prisma.product.count(),
       this.getTotalRevenue(),
-      
+
       // Today stats
       this.prisma.order.count({
         where: { createdAt: { gte: startOfToday } },
       }),
       this.getRevenue({ startDate: startOfToday }),
-      
+
       // Monthly stats
       this.prisma.order.count({
         where: { createdAt: { gte: startOfMonth } },
       }),
       this.getRevenue({ startDate: startOfMonth }),
-      
+
       // Yearly stats
       this.prisma.order.count({
         where: { createdAt: { gte: startOfYear } },
       }),
       this.getRevenue({ startDate: startOfYear }),
-      
+
       // Low stock products
       this.prisma.stock.findMany({
         where: { quantity: { lte: 10 } },
         include: { product: true },
         take: 5,
       }),
-      
+
       // Order status counts
       this.prisma.order.count({
         where: { orderStatus: OrderStatus.pending },
@@ -110,18 +110,20 @@ export class StatisticalQuery {
     const result = await this.prisma.order.aggregate({
       where: {
         paymentStatus: PaymentStatus.paid,
+        orderStatus: OrderStatus.delivered,
       },
       _sum: {
         orderTotal: true,
       },
     });
-    
+
     return Number(result._sum.orderTotal || 0);
   }
 
   private async getRevenue({ startDate, endDate }: { startDate?: Date; endDate?: Date }) {
     const where: any = {
       paymentStatus: PaymentStatus.paid,
+      orderStatus: OrderStatus.delivered,
     };
 
     if (startDate) {
@@ -138,7 +140,7 @@ export class StatisticalQuery {
         orderTotal: true,
       },
     });
-    
+
     return Number(result._sum.orderTotal || 0);
   }
 } 

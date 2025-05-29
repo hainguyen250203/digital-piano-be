@@ -11,6 +11,47 @@ export class ProductImageDto {
   url: string;
 }
 
+class UserDto {
+  @Expose()
+  @ApiProperty()
+  id: string;
+
+  @Expose()
+  @ApiProperty()
+  email: string;
+
+  @Expose()
+  @ApiProperty()
+  avatarUrl: string;
+}
+
+class ReviewDto {
+  @Expose()
+  @ApiProperty()
+  id: string;
+
+  @Expose()
+  @ApiProperty()
+  rating: number;
+
+  @Expose()
+  @ApiProperty()
+  content: string;
+
+  @Expose()
+  @ApiProperty()
+  createdAt: Date;
+
+  @Expose()
+  @ApiProperty()
+  updatedAt: Date;
+
+  @Expose()
+  @ApiProperty({ type: UserDto })
+  @Type(() => UserDto)
+  user: UserDto;
+}
+
 export class ProductBrandDto {
   @Expose()
   @ApiProperty()
@@ -137,4 +178,9 @@ export class ResProductDto {
   @Type(() => ProductStockDto)
   @ApiProperty({ type: ProductStockDto })
   stock: ProductStockDto;
+
+  @Expose()
+  @Type(() => ReviewDto)
+  @ApiProperty({ type: ReviewDto })
+  reviews: ReviewDto[];
 } 

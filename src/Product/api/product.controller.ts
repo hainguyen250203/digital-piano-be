@@ -94,6 +94,15 @@ export class ProductController {
     return new SuccessResponseDto('Lấy danh sách sản phẩm nổi bật thành công', plainToInstance(ResAllProductDto, products, { excludeExtraneousValues: true }));
   }
 
+  @Get('best-seller')
+  @Public()
+  @ApiOperation({ summary: 'Lấy danh sách sản phẩm bán chạy nhất', description: 'Lấy danh sách các sản phẩm bán chạy nhất, có hỗ trợ phân trang.' })
+  @ApiOkResponse({ type: [ResAllProductDto] })
+  async findBestSellerProducts() {
+    const data = await this.productQuery.findBestSellerProducts();
+    return new SuccessResponseDto('Lấy danh sách sản phẩm bán chạy nhất thành công', plainToInstance(ResAllProductDto, data, { excludeExtraneousValues: true }));
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Lấy chi tiết sản phẩm', description: 'Lấy thông tin chi tiết sản phẩm theo ID.' })

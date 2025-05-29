@@ -42,7 +42,7 @@ export class ProductQuery {
     // Step 4: Set the default image
     if (createdImages.length > 0) {
       let defaultImageId: string;
-      
+
       if (defaultImageUrl) {
         // Find image matching the default URL if specified
         const matchingImage = createdImages.find(img => img.url === defaultImageUrl);
@@ -104,7 +104,12 @@ export class ProductQuery {
         brand: { select: { id: true, name: true } },
         productType: { select: { id: true, name: true } },
         subCategory: { select: { id: true, name: true, category: { select: { id: true, name: true } } } },
-        stock: { select: { id: true, quantity: true } }
+        stock: { select: { id: true, quantity: true } },
+        reviews: {
+          include: {
+            user: { select: { id: true, email: true, avatarUrl: true } }
+          }
+        }
       }
     });
   }
@@ -162,7 +167,7 @@ export class ProductQuery {
     const product = await this.prisma.product.findUnique({
       where: { id: productId }
     });
-    
+
     if (!product) {
       return null;
     }
@@ -172,7 +177,7 @@ export class ProductQuery {
       where: { id: productId },
       data: { defaultImageId: null }
     });
-    
+
     // Step 3: Delete all existing images
     await this.prisma.image.deleteMany({
       where: { productId }
@@ -240,8 +245,8 @@ export class ProductQuery {
     }
 
     // Step 2: Check if default image is among those to be deleted
-    const isDefaultImageBeingDeleted = product.defaultImage && 
-                                      imageIds.includes(product.defaultImage.id);
+    const isDefaultImageBeingDeleted = product.defaultImage &&
+      imageIds.includes(product.defaultImage.id);
 
     // Step 3: If default image will be deleted, disconnect it first
     if (isDefaultImageBeingDeleted) {
@@ -390,4 +395,68 @@ export class ProductQuery {
       orderBy: { createdAt: SortOrder.DESC }
     });
   }
+
+  async findBestSellerProducts() {
+    // Get all orders with their items and products
+    const orders = await this.prisma.order.findMany({
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    // Count the frequency of each product in orders
+    const productSales: Record<string, number> = {};
+
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        const productId = item.productId;
+        const quantity = item.quantity || 1;
+
+        if (productSales[productId]) {
+          productSales[productId] += quantity;
+        } else {
+          productSales[productId] = quantity;
+        }
+      });
+    });
+
+    // Convert to array and sort by sales count (descending)
+    const bestSellerIds = Object.entries(productSales)
+      .sort(([, countA], [, countB]) => (countB as number) - (countA as number))
+      .map(([id]) => id);
+
+    if (bestSellerIds.length === 0) {
+      return [];
+    }
+
+    // Fetch product details
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: bestSellerIds },
+        isDeleted: false
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        salePrice: true,
+        isHotSale: true,
+        isFeatured: true,
+        defaultImage: { select: { id: true, url: true } },
+        brand: { select: { id: true, name: true } },
+        productType: { select: { id: true, name: true } },
+        subCategory: { select: { id: true, name: true } },
+        stock: { select: { id: true, quantity: true } }
+      }
+    });
+
+    // Order them according to bestSellerIds
+    const productMap = new Map(products.map(product => [product.id, product]));
+    return bestSellerIds.map(id => productMap.get(id)).filter(Boolean);
+  }
+
 }

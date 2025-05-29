@@ -1,5 +1,6 @@
 import { PrismaService } from '@/Prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class RevenueStatisticsAction {
@@ -9,7 +10,8 @@ export class RevenueStatisticsAction {
     // Lấy các đơn hàng đã thanh toán
     const orders = await this.prisma.order.findMany({
       where: {
-        paymentStatus: 'paid',
+        paymentStatus: PaymentStatus.paid,
+        orderStatus: OrderStatus.delivered,
       },
       orderBy: {
         createdAt: 'asc',
@@ -20,7 +22,8 @@ export class RevenueStatisticsAction {
     const revenueByDateAndMethodRaw = await this.prisma.order.groupBy({
       by: ['createdAt', 'paymentMethod'],
       where: {
-        paymentStatus: 'paid',
+        paymentStatus: PaymentStatus.paid,
+        orderStatus: OrderStatus.delivered,
       },
       _sum: {
         orderTotal: true,
@@ -38,7 +41,7 @@ export class RevenueStatisticsAction {
         const month = String(dateObj.getMonth() + 1).padStart(2, '0');
         const year = dateObj.getFullYear();
         const date = `${day}-${month}-${year}`;
-        
+
         if (!acc[date]) {
           acc[date] = { date };
         }
