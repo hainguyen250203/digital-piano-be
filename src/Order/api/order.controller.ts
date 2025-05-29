@@ -81,7 +81,7 @@ export class OrderController {
   @ApiResponse({ type: ResOrderDto })
   async getOrderDetailByUserId(@Param('orderId') orderId: string, @GetUser('userId') userId: string) {
     const order = await this.orderQuery.getOrderDetailByUserId(orderId, userId);
-    return new SuccessResponseDto('Thông tin đơn hàng', order);
+    return new SuccessResponseDto('Thông tin đơn hàng', plainToInstance(ResOrderDto, order));
   }
 
   @Get(':id')
