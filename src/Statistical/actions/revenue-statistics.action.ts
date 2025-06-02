@@ -50,8 +50,26 @@ export class RevenueStatisticsAction {
       }, {} as Record<string, any>)
     );
 
+    // Calculate the total revenue from all payment methods across all dates
+    const totalRevenue = this.calculateTotalFromRevenueByDate(revenueByDate);
+
     return {
       revenueByDate,
+      totalRevenue,
     };
+  }
+
+  // Calculate total revenue from revenueByDate array
+  private calculateTotalFromRevenueByDate(revenueByDate: any[]): number {
+    let total = 0;
+    for (const dayData of revenueByDate) {
+      // Skip the date key
+      for (const key in dayData) {
+        if (key !== 'date') {
+          total += Number(dayData[key]);
+        }
+      }
+    }
+    return total;
   }
 }

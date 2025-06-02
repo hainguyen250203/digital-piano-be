@@ -15,6 +15,7 @@ import { StatisticalQuery } from '@/Statistical/queries/statistical.query';
 import { ClassSerializerInterceptor, Controller, Get, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
 
 @ApiTags('Thống kê')
 @Controller({
@@ -86,14 +87,12 @@ export class StatisticalController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Thống kê doanh thu', description: 'Lấy dữ liệu thống kê về doanh thu, lợi nhuận theo khoảng thời gian' })
   @ApiResponse({
-    status: 200,
-    description: 'Dữ liệu thống kê doanh thu đã được trả về thành công',
     type: RevenueStatisticsResponseDto
   })
   @ApiResponse({ status: 401, description: 'Không có quyền truy cập' })
   async getRevenueStatistics() {
     const data = await this.revenueStatisticsAction.execute();
-    return new SuccessResponseDto('Lấy dữ liệu thống kê doanh thu thành công', data);
+    return new SuccessResponseDto('Lấy dữ liệu thống kê doanh thu thành công', plainToInstance(RevenueStatisticsResponseDto, data));
   }
 
   @Get('stock')
