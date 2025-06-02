@@ -229,4 +229,11 @@ export class DiscountQuery {
       },
     });
   }
+
+  async updateUsedCount(id: string) {
+    return this.prisma.discount.update({
+      where: { id },
+      data: { usedCount: { increment: 1 } },
+    });
+  }
 } 
