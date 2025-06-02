@@ -44,23 +44,20 @@ export class CreateOrderAction {
     private readonly notificationService: NotificationService,
     private readonly paymentQuery: PaymentQuery,
     private readonly stockService: StockService,
-  ) {}
+  ) { }
 
   async execute(userId: string, ipAddr: string, dto: ReqCreateOrderDto) {
     try {
-      // Start transaction
       return await this.prisma.$transaction(async (prisma) => {
-        // Validate and prepare order data
-        await this.validateAddress(userId, dto.addressId);
-        const orderData = await this.prepareOrderData(userId, dto.discountCode);
-
-        // Create order
-        const order = await this.createOrder(userId, dto, orderData);
-
-        // Handle post-order operations
-        await this.handlePostOrderOperations(order, orderData, dto, ipAddr);
-
-        return this.formatOrderResponse(order, dto.paymentMethod);
+        try {
+          await this.validateAddress(userId, dto.addressId);
+          const orderData = await this.prepareOrderData(userId, dto.discountCode);
+          const order = await this.createOrder(userId, dto, orderData);
+          await this.handlePostOrderOperations(order, orderData, dto, ipAddr);
+          return await this.formatOrderResponse(order, dto.paymentMethod, ipAddr);
+        } catch (error) {
+          throw error;
+        }
       });
     } catch (error) {
       this.handleError(error);
@@ -100,7 +97,6 @@ export class CreateOrderAction {
     const orderItems: CreateOrderItem[] = [];
     let orderTotal = 0;
 
-    // Fetch all products in one query
     const productIds = cart.items.map((item) => item.product.id);
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -217,56 +213,68 @@ export class CreateOrderAction {
     dto: ReqCreateOrderDto,
     ipAddr: string,
   ): Promise<void> {
-    // Update discount usage
-    if (order.discountId) {
-      await this.discountQuery.updateUsedCount(order.discountId);
+    try {
+      if (order.discountId) {
+        await this.discountQuery.updateUsedCount(order.discountId);
+      }
+
+      await this.cartQuery.clearCart(order.userId);
+
+      if (dto.paymentMethod === PaymentMethod.cash) {
+        await this.updateStock(orderData.orderItems, order.id);
+      }
+
+      await this.notificationService.sendNotificationAdminAndStaff(
+        `Đơn hàng mới #${order.id}`,
+        `Đơn hàng #${order.id} với tổng tiền ${orderData.finalTotal.toLocaleString('vi-VN')}đ`,
+        NotificationType.order,
+      );
+    } catch (error) {
+      throw error;
     }
-
-    // Clear cart
-    await this.cartQuery.clearCart(order.userId);
-
-    // Update stock for cash payments
-    if (dto.paymentMethod === PaymentMethod.cash) {
-      await this.updateStock(orderData.orderItems, order.id);
-    }
-
-    // Send notification
-    await this.notificationService.sendNotificationAdminAndStaff(
-      `Đơn hàng mới #${order.id}`,
-      `Đơn hàng #${order.id} với tổng tiền ${orderData.finalTotal.toLocaleString('vi-VN')}đ`,
-      NotificationType.order,
-    );
   }
 
   private async updateStock(
     items: CreateOrderItem[],
     orderId: string,
   ): Promise<void> {
-    await Promise.all(
-      items.map((item) =>
-        this.stockService.updateStock(
-          item.productId,
-          -item.quantity,
-          ChangeType.sale,
-          ReferenceType.order,
-          orderId,
-          `Trừ kho cho đơn hàng ${orderId}`,
+    try {
+      await Promise.all(
+        items.map((item) =>
+          this.stockService.updateStock(
+            item.productId,
+            -item.quantity,
+            ChangeType.sale,
+            ReferenceType.order,
+            orderId,
+            `Trừ kho cho đơn hàng ${orderId}`,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (error) {
+      throw error;
+    }
   }
 
-  private async formatOrderResponse(order: any, paymentMethod: PaymentMethod) {
-    if (paymentMethod === PaymentMethod.vnpay) {
-      const paymentUrl = await this.paymentQuery.buildPaymentUrl({
-        amount: order.orderTotal,
-        orderId: order.id,
-        orderInfo: `Đơn hàng #${order.id}`,
-        ipAddr: '',
-      });
-      return { ...order, paymentUrl };
+  private async formatOrderResponse(
+    order: any,
+    paymentMethod: PaymentMethod,
+    ipAddr: string,
+  ) {
+    try {
+      if (paymentMethod === PaymentMethod.vnpay) {
+        const paymentUrl = await this.paymentQuery.buildPaymentUrl({
+          amount: order.orderTotal,
+          orderId: order.id,
+          orderInfo: `Đơn hàng #${order.id}`,
+          ipAddr,
+        });
+        return { ...order, paymentUrl };
+      }
+      return order;
+    } catch (error) {
+      throw error;
     }
-    return order;
   }
 
   private handleError(error: any): never {
