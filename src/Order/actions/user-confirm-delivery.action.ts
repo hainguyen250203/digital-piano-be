@@ -45,18 +45,16 @@ export class UserConfirmDeliveryAction {
   }
 
   private validateOrderStatus(status: OrderStatus): void {
-    const invalidStatusMessages: Record<OrderStatus, string> = {
-      [OrderStatus.delivered]: 'Đơn hàng đã được giao thành công',
-      [OrderStatus.cancelled]: 'Đơn hàng đã bị hủy',
-      [OrderStatus.pending]: 'Đơn hàng đang chờ giao',
-      [OrderStatus.processing]: 'Đơn hàng đang được xử lý',
-      [OrderStatus.shipping]: 'Đơn hàng đang được vận chuyển',
-      [OrderStatus.returned]: 'Đơn hàng đã được trả lại',
-    };
+    if (status !== OrderStatus.shipping) {
+      const statusMessages: Record<Exclude<OrderStatus, 'shipping'>, string> = {
+        [OrderStatus.delivered]: 'Đơn hàng đã được giao thành công',
+        [OrderStatus.cancelled]: 'Đơn hàng đã bị hủy',
+        [OrderStatus.pending]: 'Đơn hàng đang chờ giao',
+        [OrderStatus.processing]: 'Đơn hàng đang được xử lý',
+        [OrderStatus.returned]: 'Đơn hàng đã được trả lại',
+      };
 
-    const message = invalidStatusMessages[status];
-    if (message) {
-      throw new BadRequestException(message);
+      throw new BadRequestException(statusMessages[status] || 'Đơn hàng không thể xác nhận giao hàng');
     }
   }
 
