@@ -7,7 +7,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 @Controller()
 export class AppController {
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get application information',
     description: 'Returns detailed information about the Digital Piano E-commerce API. Access this endpoint at /api/'
   })
@@ -59,7 +59,7 @@ export class AppController {
   }
 
   @Get('health')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Check API health status',
     description: 'Returns the current health status of the API. Access this endpoint at /api/health'
   })
