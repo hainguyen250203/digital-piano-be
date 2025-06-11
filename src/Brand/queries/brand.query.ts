@@ -41,7 +41,7 @@ export class BrandQuery {
       orderBy: { createdAt: sort }
     });
     const brand = await this.prisma.brand.findFirst()
-    if (!brand) throw new BadRequestException("")
+    if (!brand) throw new BadRequestException('')
     return {
       id: brand.id,
       name: brand.name,

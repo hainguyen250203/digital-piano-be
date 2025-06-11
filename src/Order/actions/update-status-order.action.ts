@@ -1,8 +1,8 @@
-import { NotificationService } from "@/notification/domain/notification.service";
-import { OrderQuery } from "@/Order/queries/order.query";
-import { StockService } from "@/Stock/api/stock.service";
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { ChangeType, NotificationType, OrderStatus, ReferenceType } from "@prisma/client";
+import { NotificationService } from '@/notification/domain/notification.service';
+import { OrderQuery } from '@/Order/queries/order.query';
+import { StockService } from '@/Stock/api/stock.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ChangeType, NotificationType, OrderStatus, ReferenceType } from '@prisma/client';
 
 @Injectable()
 export class UpdateStatusOrderAction {

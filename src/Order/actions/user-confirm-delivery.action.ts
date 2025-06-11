@@ -1,7 +1,7 @@
-import { NotificationService } from "@/notification/domain/notification.service";
-import { OrderQuery } from "@/Order/queries/order.query";
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { NotificationType, Order, OrderStatus, PaymentStatus } from "@prisma/client";
+import { NotificationService } from '@/notification/domain/notification.service';
+import { OrderQuery } from '@/Order/queries/order.query';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { NotificationType, Order, OrderStatus, PaymentStatus } from '@prisma/client';
 
 interface OrderUpdateParams {
   id: string;

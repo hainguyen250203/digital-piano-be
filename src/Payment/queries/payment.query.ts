@@ -1,8 +1,8 @@
-import { BuildPaymentParams } from "@/Payment/queries/params/buil-payment.params";
-import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { VnpayService } from "nestjs-vnpay";
-import { BuildPaymentUrl, ReturnQueryFromVNPay } from "vnpay";
+import { BuildPaymentParams } from '@/Payment/queries/params/buil-payment.params';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { VnpayService } from 'nestjs-vnpay';
+import { BuildPaymentUrl, ReturnQueryFromVNPay } from 'vnpay';
 
 // Dayjs for timezone handling
 import * as dayjs from 'dayjs';
@@ -38,10 +38,10 @@ export class PaymentQuery {
       vnp_ExpireDate: parseInt(expireDate.format('YYYYMMDDHHmmss')),
     };
 
-    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ paymentParams:", paymentParams);
+    console.log('🚀 ~ PaymentQuery ~ buildPaymentUrl ~ paymentParams:', paymentParams);
 
     const url = this.vnpayService.buildPaymentUrl(paymentParams);
-    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ url:", url);
+    console.log('🚀 ~ PaymentQuery ~ buildPaymentUrl ~ url:', url);
     return url;
   }
 

@@ -1,13 +1,13 @@
-import { GetUser } from "@/Auth/decorators/user.decorator";
-import { JwtAuthGuard } from "@/Auth/guards/jwt-auth.guard";
-import { SuccessResponseDto } from "@/Common/dto/base-response.dto";
-import { CreateReviewAction } from "@/Review/actions/create-review.action";
-import { DeleteReviewAction } from "@/Review/actions/delete-review.action";
-import { UpdateReviewAction } from "@/Review/actions/update-review.action";
-import { CreateReviewDto } from "@/Review/apis/dto/create-review.dto";
-import { UpdateReviewDto } from "@/Review/apis/dto/update-review.dto";
-import { Body, Controller, Delete, Param, Post, Put, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
+import { GetUser } from '@/Auth/decorators/user.decorator';
+import { JwtAuthGuard } from '@/Auth/guards/jwt-auth.guard';
+import { SuccessResponseDto } from '@/Common/dto/base-response.dto';
+import { CreateReviewAction } from '@/Review/actions/create-review.action';
+import { DeleteReviewAction } from '@/Review/actions/delete-review.action';
+import { UpdateReviewAction } from '@/Review/actions/update-review.action';
+import { CreateReviewDto } from '@/Review/apis/dto/create-review.dto';
+import { UpdateReviewDto } from '@/Review/apis/dto/update-review.dto';
+import { Body, Controller, Delete, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 
 @Controller({
   path: 'reviews',

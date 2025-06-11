@@ -92,7 +92,7 @@ export class AddressController {
     return new SuccessResponseDto('Lấy địa chỉ thành công', plainToInstance(ResAddressDto, address, { excludeExtraneousValues: true }));
   }
 
-  @Put(":id")
+  @Put(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cập nhật địa chỉ' })

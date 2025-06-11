@@ -1,28 +1,28 @@
-import { Roles } from "@/Auth/decorators/roles.decorator";
-import { GetUser } from "@/Auth/decorators/user.decorator";
-import { JwtAuthGuard } from "@/Auth/guards/jwt-auth.guard";
-import { RolesGuard } from "@/Auth/guards/roles.guard";
-import { SuccessResponseDto } from "@/Common/dto/base-response.dto";
-import { AdminCancelOrderAction } from "@/Order/actions/admin-cancel-order.action";
-import { CreateOrderAction } from "@/Order/actions/create-order.action";
-import { RepaymentAction } from "@/Order/actions/repayment.action";
-import { UpdateStatusOrderAction } from "@/Order/actions/update-status-order.action";
-import { UserCancelOrderAction } from "@/Order/actions/user-cancel-order.action";
-import { UserChangePaymentMethodAction } from "@/Order/actions/user-change-payment-method.action";
-import { UserConfirmDeliveryAction } from "@/Order/actions/user-confirm-delivery.action";
-import { VerifyReturnUrlAction } from "@/Order/actions/verify-return-url.action";
-import { ReqChangePaymentMethodDto } from "@/Order/api/dto/req-change-payment-method.dto";
-import { ReqUpdateOrderStatusDto } from "@/Order/api/dto/req-update-order-status.dto";
-import { ReqCreateOrderDto } from "@/Order/api/dto/reqCreateOrder.dto";
-import { ResRepaymentDto } from "@/Order/api/dto/res-repayment.dto";
-import { ResReturnUrlDto } from "@/Order/api/dto/res-return-url.dto";
-import { ResOrderDto } from "@/Order/api/dto/resOrder.dto";
-import { VerifyReturnUrlDto } from "@/Order/api/dto/verify-return-url-dto";
-import { OrderQuery } from "@/Order/queries/order.query";
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from "@nestjs/swagger";
-import { Role } from "@prisma/client";
-import { plainToInstance } from "class-transformer";
+import { Roles } from '@/Auth/decorators/roles.decorator';
+import { GetUser } from '@/Auth/decorators/user.decorator';
+import { JwtAuthGuard } from '@/Auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@/Auth/guards/roles.guard';
+import { SuccessResponseDto } from '@/Common/dto/base-response.dto';
+import { AdminCancelOrderAction } from '@/Order/actions/admin-cancel-order.action';
+import { CreateOrderAction } from '@/Order/actions/create-order.action';
+import { RepaymentAction } from '@/Order/actions/repayment.action';
+import { UpdateStatusOrderAction } from '@/Order/actions/update-status-order.action';
+import { UserCancelOrderAction } from '@/Order/actions/user-cancel-order.action';
+import { UserChangePaymentMethodAction } from '@/Order/actions/user-change-payment-method.action';
+import { UserConfirmDeliveryAction } from '@/Order/actions/user-confirm-delivery.action';
+import { VerifyReturnUrlAction } from '@/Order/actions/verify-return-url.action';
+import { ReqChangePaymentMethodDto } from '@/Order/api/dto/req-change-payment-method.dto';
+import { ReqUpdateOrderStatusDto } from '@/Order/api/dto/req-update-order-status.dto';
+import { ReqCreateOrderDto } from '@/Order/api/dto/reqCreateOrder.dto';
+import { ResRepaymentDto } from '@/Order/api/dto/res-repayment.dto';
+import { ResReturnUrlDto } from '@/Order/api/dto/res-return-url.dto';
+import { ResOrderDto } from '@/Order/api/dto/resOrder.dto';
+import { VerifyReturnUrlDto } from '@/Order/api/dto/verify-return-url-dto';
+import { OrderQuery } from '@/Order/queries/order.query';
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
 import { Request } from 'express';
 
 @Controller({
@@ -64,7 +64,7 @@ export class OrderController {
     return new SuccessResponseDto('Danh sách đơn hàng', plainToInstance(ResOrderDto, orders));
   }
 
-  @Get("me")
+  @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lấy danh sách đơn hàng của người dùng' })
@@ -74,7 +74,7 @@ export class OrderController {
     return new SuccessResponseDto('Danh sách đơn hàng', plainToInstance(ResOrderDto, orders));
   }
 
-  @Get("me/:orderId")
+  @Get('me/:orderId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lấy thông tin đơn hàng của người dùng' })

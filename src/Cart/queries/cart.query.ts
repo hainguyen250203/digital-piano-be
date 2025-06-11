@@ -1,5 +1,5 @@
-import { PrismaService } from "@/Prisma/prisma.service";
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { PrismaService } from '@/Prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class CartQuery {
@@ -39,7 +39,7 @@ export class CartQuery {
   }
 
   async deleteCart(userId: string) {
-    const cart = await this.prisma.cart.delete({ where: { userId } });
+    const cart = await this.prisma.cart.delete({ where: { userId }, select: { id: true } });
     return cart;
   }
 
@@ -65,7 +65,13 @@ export class CartQuery {
 
   async createCartItem(quantity: number, productId: string, cartId: string) {
     const cartItem = await this.prisma.cartItem.create({
-      data: { productId, cartId, quantity }
+      data: { productId, cartId, quantity },
+      select: {
+        id: true, quantity: true,
+        product: {
+          select: { id: true, name: true, price: true, defaultImage: true, salePrice: true }
+        }
+      }
     });
     return cartItem;
   }
@@ -73,10 +79,18 @@ export class CartQuery {
   async updateCartItem(cartItemId: string, quantity: number) {
     const cartItem = await this.prisma.cartItem.update({
       where: { id: cartItemId },
-      data: { quantity }
+      data: { quantity },
+      select: {
+        id: true, quantity: true,
+        product: {
+          select: { id: true, name: true, price: true, defaultImage: true, salePrice: true }
+        }
+      }
     });
     return cartItem;
   }
+
+
 
   async deleteCartItem(cartItemId: string) {
     const cartItem = await this.prisma.cartItem.delete({ where: { id: cartItemId } });

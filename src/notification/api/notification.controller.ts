@@ -77,14 +77,14 @@ export class NotificationController {
     return new SuccessResponseDto('Đánh dấu tất cả thông báo đã đọc thành công', null);
   }
 
-  @Delete("read")
+  @Delete('read')
   @ApiOperation({ summary: 'Xóa tất cả thông báo đã đọc' })
   @ApiResponse({
     status: 200,
     description: 'Tất cả thông báo đã được xóa',
   })
   async deleteAllRead(@GetUser('userId') userId: string): Promise<BaseResponseDto<null>> {
-    console.log("🚀 ~ NotificationController ~ deleteAllRead ~ userId:", userId)
+    console.log('🚀 ~ NotificationController ~ deleteAllRead ~ userId:', userId)
 
     await this.notificationService.deleteAllRead(userId);
     return new SuccessResponseDto('Xóa tất cả thông báo đã đọc thành công', null);

@@ -1,8 +1,8 @@
-import { UpdateOrderParams } from "@/Order/actions/update-order.params";
-import { CreateOrderParams } from "@/Order/queries/params/create-order.params";
-import { PrismaService } from "@/Prisma/prisma.service";
-import { Injectable } from "@nestjs/common";
-import { Order, PaymentStatus } from "@prisma/client";
+import { UpdateOrderParams } from '@/Order/actions/update-order.params';
+import { CreateOrderParams } from '@/Order/queries/params/create-order.params';
+import { PrismaService } from '@/Prisma/prisma.service';
+import { Injectable } from '@nestjs/common';
+import { Order, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class OrderQuery {

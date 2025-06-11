@@ -1,8 +1,8 @@
-import { NotificationService } from "@/notification/domain/notification.service";
-import { OrderQuery } from "@/Order/queries/order.query";
-import { StockService } from "@/Stock/api/stock.service";
-import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { ChangeType, NotificationType, OrderStatus, ReferenceType } from "@prisma/client";
+import { NotificationService } from '@/notification/domain/notification.service';
+import { OrderQuery } from '@/Order/queries/order.query';
+import { StockService } from '@/Stock/api/stock.service';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ChangeType, NotificationType, OrderStatus, ReferenceType } from '@prisma/client';
 
 /**
  * Interface for order items
@@ -28,43 +28,43 @@ export class AdminCancelOrderAction {
 
   async execute(orderId: string) {
     this.logger.log(`Admin cancelling order ${orderId}`);
-    
+
     // Get and validate order
     const order = await this.validateOrder(orderId);
-    
+
     // Cancel the order
     const updatedOrder = await this.cancelOrder(orderId);
-    
+
     // Update inventory
     await this.returnItemsToInventory(order.items, orderId);
-    
+
     // Send notifications
     await this.sendCancellationNotifications(order.id, order.userId);
-    
+
     return updatedOrder;
   }
 
   private async validateOrder(orderId: string) {
     const order = await this.orderQuery.getOrderById(orderId);
-    
+
     if (!order) {
       this.logger.warn(`Order ${orderId} not found`);
       throw new NotFoundException('Đơn hàng không tồn tại');
     }
-    
+
     if (order.orderStatus === OrderStatus.cancelled) {
       this.logger.warn(`Order ${orderId} is already cancelled`);
       throw new BadRequestException('Đơn hàng đã bị hủy trước đó');
     }
-    
+
     return order;
   }
 
   private async cancelOrder(orderId: string) {
     this.logger.log(`Updating order ${orderId} status to cancelled`);
-    return await this.orderQuery.updateOrder({ 
-      id: orderId, 
-      orderStatus: OrderStatus.cancelled 
+    return await this.orderQuery.updateOrder({
+      id: orderId,
+      orderStatus: OrderStatus.cancelled
     });
   }
 
@@ -96,6 +96,6 @@ export class AdminCancelOrderAction {
       `Đơn hàng đã bị hủy bởi quản trị viên`,
       NotificationType.order
     );
-    
+
   }
 }

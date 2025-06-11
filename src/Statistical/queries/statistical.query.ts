@@ -16,7 +16,7 @@ export class StatisticalQuery {
 
     // Get revenue data from consistent source
     const revenueData = await this.getRevenueByDateAndMethod();
-    
+
     // Calculate all revenue metrics from the same data source for consistency
     const {
       totalRevenue,
@@ -24,7 +24,7 @@ export class StatisticalQuery {
       monthlyRevenue,
       yearlyRevenue
     } = this.calculateAllRevenuesFromConsistentSource(revenueData.revenueByDate, today);
-    
+
     this.logger.log(`Calculated revenues from consistent source: total=${totalRevenue}, today=${todayRevenue}, month=${monthlyRevenue}, year=${yearlyRevenue}`);
 
     // Run other queries in parallel
@@ -59,7 +59,7 @@ export class StatisticalQuery {
 
     this.logger.log(`Today's date (ISO format): ${todayISO}`);
     this.logger.log(`This month (ISO format): ${thisMonthISO}`);
-    
+
     return { today, todayISO, thisMonthISO };
   }
 
@@ -72,12 +72,12 @@ export class StatisticalQuery {
     const todayStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
     const thisMonth = `${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
     const thisYear = today.getFullYear().toString();
-    
+
     let totalRevenue = 0;
     let todayRevenue = 0;
     let monthlyRevenue = 0;
     let yearlyRevenue = 0;
-    
+
     // Log a sample of the data we're working with
     if (revenueByDate.length > 0) {
       const sample = revenueByDate.slice(0, Math.min(3, revenueByDate.length));
@@ -87,29 +87,29 @@ export class StatisticalQuery {
     for (const dayData of revenueByDate) {
       const dayTotal = this.calculateDayTotal(dayData);
       totalRevenue += dayTotal;
-      
-      // Parse the date from "DD-MM-YYYY" format
+
+      // Parse the date from 'DD-MM-YYYY' format
       if (!dayData.date) {
         this.logger.warn(`Missing date field in revenue data: ${JSON.stringify(dayData)}`);
         continue;
       }
-      
+
       const [day, month, year] = dayData.date.split('-');
-      
+
       // Calculate period-specific revenues
       if (dayData.date === todayStr) {
         todayRevenue += dayTotal;
       }
-      
+
       if (`${month}-${year}` === thisMonth) {
         monthlyRevenue += dayTotal;
       }
-      
+
       if (year === thisYear) {
         yearlyRevenue += dayTotal;
       }
     }
-    
+
     return { totalRevenue, todayRevenue, monthlyRevenue, yearlyRevenue };
   }
 
@@ -129,7 +129,7 @@ export class StatisticalQuery {
       this.prisma.user.count(),
       this.prisma.product.count(),
     ]);
-    
+
     return { totalOrders, totalUsers, totalProducts };
   }
 
@@ -146,7 +146,7 @@ export class StatisticalQuery {
         where: { createdAt: { gte: new Date(today.getFullYear(), 0, 1) } },
       }),
     ]);
-    
+
     return { todayOrders, monthlyOrders, yearlyOrders };
   }
 
@@ -174,7 +174,7 @@ export class StatisticalQuery {
       this.prisma.order.count({ where: { orderStatus: OrderStatus.cancelled } }),
       this.prisma.order.count({ where: { orderStatus: OrderStatus.returned } }),
     ]);
-    
+
     return { pending, processing, shipping, delivered, cancelled, returned };
   }
 

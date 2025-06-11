@@ -41,8 +41,8 @@ export class CartController {
   @ApiBody({ type: ReqAddProductToCard })
   async addProductToCart(@Body() ReqAddProductToCard: ReqAddProductToCard, @GetUser('userId') userId: string) {
     try {
-      await this.AddProductToCartAction.execute(ReqAddProductToCard.productId, userId);
-      return new SuccessResponseDto('Thêm sản phẩm vào giỏ hàng thành công', null);
+      const data = await this.AddProductToCartAction.execute(ReqAddProductToCard.productId, userId);
+      return new SuccessResponseDto('Thêm sản phẩm vào giỏ hàng thành công', data);
     } catch (error) {
       throw error;
     }
@@ -60,11 +60,11 @@ export class CartController {
   @ApiOperation({ summary: 'Xóa giỏ hàng' })
   @ApiCreatedResponse({ type: SuccessResponseDto })
   async deleteCart(@GetUser('userId') userId: string) {
-    await this.CartQuery.deleteCart(userId);
-    return new SuccessResponseDto('Xóa giỏ hàng thành công', null);
+    const data = await this.CartQuery.deleteCart(userId);
+    return new SuccessResponseDto('Xóa giỏ hàng thành công', data);
   }
 
-  @Delete("/:cartItemId")
+  @Delete('/:cartItemId')
   @ApiOperation({ summary: 'Xóa sản phẩm khỏi giỏ hàng' })
   @ApiCreatedResponse({ type: SuccessResponseDto })
   async deleteCartItem(@Param('cartItemId') cartItemId: string) {
@@ -72,7 +72,7 @@ export class CartController {
     return new SuccessResponseDto('Xóa sản phẩm khỏi giỏ hàng thành công', null);
   }
 
-  @Patch("/:cartItemId")
+  @Patch('/:cartItemId')
   @ApiOperation({ summary: 'Cập nhật số lượng sản phẩm trong giỏ hàng' })
   @ApiCreatedResponse({ type: SuccessResponseDto })
   async updateCartItem(@Param('cartItemId') cartItemId: string, @Body() updateCartItemDto: UpdateCartItemDto) {

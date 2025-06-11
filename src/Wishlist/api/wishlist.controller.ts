@@ -25,7 +25,7 @@ export class WishlistController {
     @GetUser('userId') userId: string
   ) {
     const wishlists = await this.wishlistQuery.getWishlistByUserId(userId);
-    return new SuccessResponseDto("Lấy danh sách yêu thích thành công", plainToInstance(WishlistResponseDto, wishlists, { excludeExtraneousValues: true }));
+    return new SuccessResponseDto('Lấy danh sách yêu thích thành công', plainToInstance(WishlistResponseDto, wishlists, { excludeExtraneousValues: true }));
   }
 
 
