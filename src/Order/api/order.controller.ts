@@ -48,9 +48,18 @@ export class OrderController {
   @ApiOperation({ summary: 'Tạo đơn hàng' })
   @ApiResponse({ type: ResOrderDto })
   async createOrder(@Req() req: Request, @Body() body: ReqCreateOrderDto, @GetUser('userId') userId: string) {
-    const ipAddr = this.getClientIp(req)
-    const order = await this.createOrderAction.execute(userId, ipAddr, body);
-    return new SuccessResponseDto('Đơn hàng đã được tạo thành công', plainToInstance(ResOrderDto, order));
+    try {
+      const ipAddr = this.getClientIp(req)
+      console.warn('[OrderController] Creating order with params:', { userId, ipAddr, body });
+      const order = await this.createOrderAction.execute(userId, ipAddr, body);
+      console.warn('[OrderController] Order created successfully:', { orderId: order.id });
+      const transformedOrder = plainToInstance(ResOrderDto, order);
+      console.warn('[OrderController] Order transformed successfully:', { orderId: transformedOrder.id });
+      return new SuccessResponseDto('Đơn hàng đã được tạo thành công', transformedOrder);
+    } catch (error) {
+      console.error('[OrderController] Error creating order:', error);
+      throw error;
+    }
   }
 
   @Get()

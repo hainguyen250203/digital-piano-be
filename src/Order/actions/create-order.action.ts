@@ -48,18 +48,30 @@ export class CreateOrderAction {
 
   async execute(userId: string, ipAddr: string, dto: ReqCreateOrderDto) {
     try {
+      console.warn('[CreateOrder] Starting transaction for user:', userId);
       return await this.prisma.$transaction(async (prisma) => {
         try {
+          console.warn('[CreateOrder] Validating address');
           await this.validateAddress(userId, dto.addressId);
+
+          console.warn('[CreateOrder] Preparing order data');
           const orderData = await this.prepareOrderData(userId, dto.discountCode);
+
+          console.warn('[CreateOrder] Creating order');
           const order = await this.createOrder(userId, dto, orderData);
+
+          console.warn('[CreateOrder] Handling post order operations');
           await this.handlePostOrderOperations(order, orderData, dto, ipAddr);
+
+          console.warn('[CreateOrder] Formatting order response');
           return await this.formatOrderResponse(order, dto.paymentMethod, ipAddr);
         } catch (error) {
+          console.error('[CreateOrder] Error in transaction:', error);
           throw error;
         }
       });
     } catch (error) {
+      console.error('[CreateOrder] Transaction failed:', error);
       this.handleError(error);
     }
   }
