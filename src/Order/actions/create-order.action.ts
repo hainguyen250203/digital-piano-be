@@ -4,24 +4,24 @@ import { DiscountQuery } from '@/Discount/queries/discount.query';
 import { NotificationService } from '@/notification/domain/notification.service';
 import { OrderQuery } from '@/Order/queries/order.query';
 import {
-    CreateOrderItem,
-    CreateOrderParams,
+  CreateOrderItem,
+  CreateOrderParams,
 } from '@/Order/queries/params/create-order.params';
 import { PaymentQuery } from '@/Payment/queries/payment.query';
 import { PrismaService } from '@/Prisma/prisma.service';
 import { StockService } from '@/Stock/api/stock.service';
 import {
-    BadRequestException,
-    Injectable,
-    InternalServerErrorException,
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import {
-    ChangeType,
-    Discount,
-    DiscountType,
-    NotificationType,
-    PaymentMethod,
-    ReferenceType,
+  ChangeType,
+  Discount,
+  DiscountType,
+  NotificationType,
+  PaymentMethod,
+  ReferenceType,
 } from '@prisma/client';
 import { ReqCreateOrderDto } from '../api/dto/reqCreateOrder.dto';
 
@@ -49,8 +49,8 @@ export class CreateOrderAction {
   async execute(userId: string, ipAddr: string, dto: ReqCreateOrderDto) {
     try {
       return await this.prisma.$transaction(async (prisma) => {
-    try {
-      await this.validateAddress(userId, dto.addressId);
+        try {
+          await this.validateAddress(userId, dto.addressId);
           const orderData = await this.prepareOrderData(userId, dto.discountCode);
           const order = await this.createOrder(userId, dto, orderData);
           await this.handlePostOrderOperations(order, orderData, dto, ipAddr);
@@ -242,11 +242,11 @@ export class CreateOrderAction {
       await Promise.all(
         items.map((item) =>
           this.stockService.updateStock(
-        item.productId,
-        -item.quantity,
-        ChangeType.sale,
-        ReferenceType.order,
-        orderId,
+            item.productId,
+            -item.quantity,
+            ChangeType.sale,
+            ReferenceType.order,
+            orderId,
             `Trừ kho cho đơn hàng ${orderId}`,
           ),
         ),
@@ -262,17 +262,21 @@ export class CreateOrderAction {
     ipAddr: string,
   ) {
     try {
+      console.warn('[CreateOrder] Formatting order response:', { orderId: order.id, paymentMethod, ipAddr });
       if (paymentMethod === PaymentMethod.vnpay) {
+        console.warn('[CreateOrder] Building VNPay payment URL for order:', order.id);
         const paymentUrl = await this.paymentQuery.buildPaymentUrl({
           amount: order.orderTotal,
           orderId: order.id,
           orderInfo: `Đơn hàng #${order.id}`,
           ipAddr,
         });
+        console.warn('[CreateOrder] VNPay payment URL built successfully:', { orderId: order.id, paymentUrl });
         return { ...order, paymentUrl };
       }
       return order;
     } catch (error) {
+      console.error('[CreateOrder] Error formatting order response:', error);
       throw error;
     }
   }

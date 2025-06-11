@@ -87,15 +87,6 @@ export class CreateReviewAction {
             isDeleted: false,
             updatedAt: new Date(),
           },
-          include: {
-            user: {
-              select: {
-                id: true,
-                email: true,
-                avatarUrl: true,
-              },
-            },
-          },
         });
       }
 
@@ -108,15 +99,7 @@ export class CreateReviewAction {
           rating: dto.rating,
           content: dto.content,
         },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              avatarUrl: true,
-            },
-          },
-        },
+
       });
     } catch (error) {
       // Đảm bảo rằng các lỗi từ Prisma được xử lý đúng

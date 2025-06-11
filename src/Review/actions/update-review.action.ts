@@ -36,15 +36,6 @@ export class UpdateReviewAction {
         id: reviewId,
       },
       data: updateData,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            avatarUrl: true,
-          },
-        },
-      },
     });
   }
 } 

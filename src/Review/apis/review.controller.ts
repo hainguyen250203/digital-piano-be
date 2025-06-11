@@ -21,21 +21,24 @@ export class ReviewController {
   @Post()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Tạo đánh giá' })
-  createReview(@Body() createReviewDto: CreateReviewDto, @GetUser('userId') userId: string) {
-    return new SuccessResponseDto('Tạo đánh giá thành công', this.createReviewAction.execute(userId, createReviewDto));
+  async createReview(@Body() createReviewDto: CreateReviewDto, @GetUser('userId') userId: string) {
+    const data = await this.createReviewAction.execute(userId, createReviewDto);
+    return new SuccessResponseDto('Tạo đánh giá thành công', data);
   }
 
   @Put(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cập nhật đánh giá' })
-  updateReview(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto, @GetUser('userId') userId: string) {
-    return new SuccessResponseDto('Cập nhật đánh giá thành công', this.updateReviewAction.execute(userId, id, updateReviewDto));
+  async updateReview(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto, @GetUser('userId') userId: string) {
+    const data = await this.updateReviewAction.execute(userId, id, updateReviewDto);
+    return new SuccessResponseDto('Cập nhật đánh giá thành công', data);
   }
 
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Xóa đánh giá' })
-  deleteReview(@Param('id') id: string, @GetUser('userId') userId: string) {
-    return new SuccessResponseDto('Xóa đánh giá thành công', this.deleteReviewAction.execute(userId, id));
+  async deleteReview(@Param('id') id: string, @GetUser('userId') userId: string) {
+    const data = await this.deleteReviewAction.execute(userId, id);
+    return new SuccessResponseDto('Xóa đánh giá thành công', data);
   }
 }
