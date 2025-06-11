@@ -12,7 +12,7 @@ export class SendOtpAction {
   constructor(
     private readonly mailerService: MailerService,
     private readonly authQuery: AuthQuery
-  ) {}
+  ) { }
 
   async execute(email: string, type: OtpType) {
     const user = await this.authQuery.getUserByEmail(email);
@@ -22,14 +22,16 @@ export class SendOtpAction {
     const secret = randomBytes(16).toString('hex');
     await this.authQuery.createOtp(email, Number(otp), secret);
 
-    const baseUrl = 'https://your-frontend.com';
-    const link = type === 'login' ? `${baseUrl}/login-otp?email=${encodeURIComponent(email)}&otpSecret=${secret}&code=${otp}` : `${baseUrl}/reset-password?email=${encodeURIComponent(email)}&otpSecret=${secret}&code=${otp}`;
+    const baseUrl = 'https://digital-piano.vercel.app';
+    const link = type === 'login'
+      ? `${baseUrl}/login/verify?email=${encodeURIComponent(email)}&otpSecret=${secret}`
+      : `${baseUrl}/reset-password?email=${encodeURIComponent(email)}&otpSecret=${secret}`;
 
     try {
       await this.mailerService.sendMail({
         to: email,
         subject: type === 'login' ? 'Mã đăng nhập HĐ Music' : 'Khôi phục mật khẩu - HĐ Music',
-        template: './otp-email',
+        template: 'otp-email',
         context: {
           otpCode: otp,
           actionUrl: link,

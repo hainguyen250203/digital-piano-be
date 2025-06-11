@@ -176,7 +176,6 @@ export class ProductController {
       defaultImage,
       reqCreateProductDto
     );
-
     return new SuccessResponseDto('Tạo sản phẩm thành công', plainToInstance(ResAllProductDto, data, { excludeExtraneousValues: true }));
   }
 
@@ -537,7 +536,7 @@ export class ProductController {
   async deleteProduct(@Param('id') id: string) {
     const data = await this.productQuery.delete(id);
     if (!data) throw new NotFoundException('Sản phẩm không tồn tại');
-    return new SuccessResponseDto('Xóa sản phẩm thành công', null);
+    return new SuccessResponseDto('Xóa sản phẩm thành công', data);
   }
 
   @Delete(':id/images')
