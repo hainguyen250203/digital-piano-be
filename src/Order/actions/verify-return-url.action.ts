@@ -17,21 +17,9 @@ export class VerifyReturnUrlAction {
   ) { }
 
   async execute(params: VerifyReturnUrlParams) {
-    console.warn('[VerifyReturnUrl] Starting verification with params:', {
-      orderId: params.vnp_TxnRef,
-      responseCode: params.vnp_ResponseCode,
-      transactionStatus: params.vnp_TransactionStatus
-    });
-
     const verifyReturnUrl = await this.paymentQuery.verifyReturnUrl(params);
-    console.warn('[VerifyReturnUrl] Verification result:', {
-      orderId: params.vnp_TxnRef,
-      isSuccess: verifyReturnUrl.isSuccess,
-      isVerified: verifyReturnUrl.isVerified
-    });
 
     if (verifyReturnUrl.isSuccess) {
-      console.warn('[VerifyReturnUrl] Updating order payment status:', params.vnp_TxnRef);
       const orderUpdated = await this.orderQuery.updateOrderIfUnpaid({
         id: params.vnp_TxnRef,
         paymentStatus: PaymentStatus.paid,
@@ -40,15 +28,9 @@ export class VerifyReturnUrlAction {
       });
 
       if (orderUpdated) {
-        console.warn('[VerifyReturnUrl] Order updated successfully:', {
-          orderId: orderUpdated.id,
-          paymentStatus: orderUpdated.paymentStatus
-        });
-
         // Cập nhật kho sau khi thanh toán thành công
         const order = await this.orderQuery.getOrderById(orderUpdated.id);
         if (order) {
-          console.warn('[VerifyReturnUrl] Updating stock for order:', order.id);
           for (const item of order.items) {
             await this.stockService.updateStock(
               item.productId,
@@ -67,18 +49,11 @@ export class VerifyReturnUrlAction {
           NotificationType.order
         );
       } else {
-        console.warn('[VerifyReturnUrl] Order already paid or update failed:', params.vnp_TxnRef);
         return verifyReturnUrl;
       }
 
       return verifyReturnUrl;
     } else {
-      console.error('[VerifyReturnUrl] Payment verification failed:', {
-        orderId: verifyReturnUrl.vnp_TxnRef,
-        responseCode: params.vnp_ResponseCode,
-        transactionStatus: params.vnp_TransactionStatus
-      });
-
       const updateOrderParams: UpdateOrderParams = {
         id: verifyReturnUrl.vnp_TxnRef,
         paymentStatus: PaymentStatus.failed,

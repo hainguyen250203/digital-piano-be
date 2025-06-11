@@ -48,30 +48,35 @@ export class CreateOrderAction {
 
   async execute(userId: string, ipAddr: string, dto: ReqCreateOrderDto) {
     try {
-      console.warn('[CreateOrder] Starting transaction for user:', userId);
-      return await this.prisma.$transaction(async (prisma) => {
+      // Validate address trước khi vào transaction
+      await this.validateAddress(userId, dto.addressId);
+
+      // Prepare order data trước khi vào transaction
+      const orderData = await this.prepareOrderData(userId, dto.discountCode);
+
+      // Chỉ giữ các thao tác cần transaction trong $transaction
+      const order = await this.prisma.$transaction(async (prisma) => {
         try {
-          console.warn('[CreateOrder] Validating address');
-          await this.validateAddress(userId, dto.addressId);
-
-          console.warn('[CreateOrder] Preparing order data');
-          const orderData = await this.prepareOrderData(userId, dto.discountCode);
-
-          console.warn('[CreateOrder] Creating order');
           const order = await this.createOrder(userId, dto, orderData);
 
-          console.warn('[CreateOrder] Handling post order operations');
-          await this.handlePostOrderOperations(order, orderData, dto, ipAddr);
+          // Chỉ cập nhật stock nếu thanh toán tiền mặt
+          if (dto.paymentMethod === PaymentMethod.cash) {
+            await this.updateStock(orderData.orderItems, order.id);
+          }
 
-          console.warn('[CreateOrder] Formatting order response');
-          return await this.formatOrderResponse(order, dto.paymentMethod, ipAddr);
+          return order;
         } catch (error) {
-          console.error('[CreateOrder] Error in transaction:', error);
           throw error;
         }
+      }, {
+        timeout: 60000
       });
+
+      // Các thao tác sau transaction
+      await this.handlePostOrderOperations(order, orderData, dto, ipAddr);
+
+      return await this.formatOrderResponse(order, dto.paymentMethod, ipAddr);
     } catch (error) {
-      console.error('[CreateOrder] Transaction failed:', error);
       this.handleError(error);
     }
   }
@@ -232,17 +237,13 @@ export class CreateOrderAction {
 
       await this.cartQuery.clearCart(order.userId);
 
-      if (dto.paymentMethod === PaymentMethod.cash) {
-        await this.updateStock(orderData.orderItems, order.id);
-      }
-
       await this.notificationService.sendNotificationAdminAndStaff(
         `Đơn hàng mới #${order.id}`,
         `Đơn hàng #${order.id} với tổng tiền ${orderData.finalTotal.toLocaleString('vi-VN')}đ`,
         NotificationType.order,
       );
     } catch (error) {
-      throw error;
+      // Không throw error ở đây vì đơn hàng đã được tạo thành công
     }
   }
 
@@ -274,21 +275,17 @@ export class CreateOrderAction {
     ipAddr: string,
   ) {
     try {
-      console.warn('[CreateOrder] Formatting order response:', { orderId: order.id, paymentMethod, ipAddr });
       if (paymentMethod === PaymentMethod.vnpay) {
-        console.warn('[CreateOrder] Building VNPay payment URL for order:', order.id);
         const paymentUrl = await this.paymentQuery.buildPaymentUrl({
           amount: order.orderTotal,
           orderId: order.id,
           orderInfo: `Đơn hàng #${order.id}`,
           ipAddr,
         });
-        console.warn('[CreateOrder] VNPay payment URL built successfully:', { orderId: order.id, paymentUrl });
         return { ...order, paymentUrl };
       }
       return order;
     } catch (error) {
-      console.error('[CreateOrder] Error formatting order response:', error);
       throw error;
     }
   }
