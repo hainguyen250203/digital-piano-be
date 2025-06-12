@@ -30,7 +30,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           from: 'noreply@gmail.com'
         },
         template: {
-          dir: process.cwd() + '/src/common/templates',
+          dir: process.cwd() + '/src/Common/templates',
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true
@@ -58,4 +58,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   ],
   exports: [ConfigModule, MailerModule, HttpModule]
 })
-export class CommonConfigModule {}
+export class CommonConfigModule { }
