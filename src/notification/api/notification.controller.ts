@@ -84,8 +84,6 @@ export class NotificationController {
     description: 'Tất cả thông báo đã được xóa',
   })
   async deleteAllRead(@GetUser('userId') userId: string): Promise<BaseResponseDto<null>> {
-    console.log('🚀 ~ NotificationController ~ deleteAllRead ~ userId:', userId)
-
     await this.notificationService.deleteAllRead(userId);
     return new SuccessResponseDto('Xóa tất cả thông báo đã đọc thành công', null);
   }

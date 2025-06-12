@@ -1,3 +1,4 @@
+import { ChangePasswordAction } from '@/Auth/actions/change-password.action';
 import { LoginOtpAction } from '@/Auth/actions/login-otp.action';
 import { LoginAction } from '@/Auth/actions/login.action';
 import { SendOtpAction } from '@/Auth/actions/send-otp.action';
@@ -15,6 +16,6 @@ import { JwtModule } from '@nestjs/jwt';
 @Module({
   imports: [PrismaModule, JwtModule.registerAsync({ imports: [ConfigModule], useFactory: async (config: ConfigService) => ({ secret: config.get('jwt.secret'), signOptions: { expiresIn: config.get('jwt.expiresIn') } }), inject: [ConfigService] })],
   controllers: [AuthController],
-  providers: [JwtStrategy, LoginAction, SignUpAction, AuthQuery, VerifyOtpAction, LoginOtpAction, SendOtpAction]
+  providers: [JwtStrategy, LoginAction, SignUpAction, AuthQuery, VerifyOtpAction, LoginOtpAction, SendOtpAction, ChangePasswordAction]
 })
-export class AuthModule {}
+export class AuthModule { }

@@ -1,8 +1,10 @@
+import { ChangePasswordAction } from '@/Auth/actions/change-password.action';
 import { LoginOtpAction } from '@/Auth/actions/login-otp.action';
 import { LoginAction } from '@/Auth/actions/login.action';
 import { SendOtpAction } from '@/Auth/actions/send-otp.action';
 import { SignUpAction } from '@/Auth/actions/signup.action';
 import { VerifyOtpAction } from '@/Auth/actions/verify-otp-action';
+import { ReqChangePasswordDto } from '@/Auth/api/dto/req-change-password.dto';
 import { ReqOtpDto } from '@/Auth/api/dto/req-otp.dto';
 import { ReqSignInDto } from '@/Auth/api/dto/req-sign-in.dto';
 import { ReqSignUpDto } from '@/Auth/api/dto/req-sign-up.dto';
@@ -13,6 +15,7 @@ import { Public } from '@/Auth/decorators/public.decorator';
 import { AuthQuery } from '@/Auth/queries/auth.query';
 
 import { ResOtpForgotPasswordDto } from '@/Auth/api/dto/res-otp-forgot-password.dto';
+import { GetUser } from '@/Auth/decorators/user.decorator';
 import { BaseResponseDto, SuccessResponseDto } from '@/Common/dto/base-response.dto';
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiBadRequestResponse, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -31,6 +34,7 @@ export class AuthController {
     private readonly verifyOtpAction: VerifyOtpAction,
     private readonly loginOtpAction: LoginOtpAction,
     private readonly sendOtpAction: SendOtpAction,
+    private readonly changePasswordAction: ChangePasswordAction,
     private readonly authQuery: AuthQuery
   ) { }
 
@@ -102,5 +106,19 @@ export class AuthController {
     const { email, otp, otpSecret, newPassword } = reqVerifyOtpForgotPasswordDto;
     const data = await this.verifyOtpAction.execute(email, otp, otpSecret, newPassword);
     return new SuccessResponseDto('Đặt lại mật khẩu thành công', plainToInstance(ResAccessTokenDto, data, { excludeExtraneousValues: true }));
+  }
+
+  @Post('change-password')
+  @ApiOperation({ summary: 'Đổi mật khẩu' })
+  @ApiBody({ type: ReqChangePasswordDto })
+  @ApiOkResponse({ type: ResAccessTokenDto })
+  @ApiBadRequestResponse({ type: BaseResponseDto })
+  async changePassword(
+    @GetUser('userId') userId: string,
+    @Body() reqChangePasswordDto: ReqChangePasswordDto
+  ): Promise<BaseResponseDto<any>> {
+    const { oldPassword, newPassword } = reqChangePasswordDto;
+    const data = await this.changePasswordAction.execute(userId, oldPassword, newPassword);
+    return new SuccessResponseDto('Đổi mật khẩu thành công', plainToInstance(ResAccessTokenDto, data, { excludeExtraneousValues: true }));
   }
 }
