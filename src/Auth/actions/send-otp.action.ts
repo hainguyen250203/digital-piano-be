@@ -25,7 +25,7 @@ export class SendOtpAction {
     const baseUrl = 'https://digital-piano.vercel.app';
     const link = type === 'login'
       ? `${baseUrl}/login/verify?email=${encodeURIComponent(email)}&otpSecret=${secret}`
-      : `${baseUrl}/reset-password?email=${encodeURIComponent(email)}&otpSecret=${secret}`;
+      : `${baseUrl}/reset-password?email=${encodeURIComponent(email)}&otpSecret=${secret}&otp=${otp}`;
 
     try {
       await this.mailerService.sendMail({
