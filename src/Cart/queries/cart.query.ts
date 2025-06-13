@@ -67,9 +67,24 @@ export class CartQuery {
     const cartItem = await this.prisma.cartItem.create({
       data: { productId, cartId, quantity },
       select: {
-        id: true, quantity: true,
+        id: true,
+        quantity: true,
         product: {
-          select: { id: true, name: true, price: true, defaultImage: true, salePrice: true }
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            salePrice: true,
+            defaultImage: {
+              select: {
+                id: true,
+                url: true,
+                productId: true,
+                createdAt: true,
+                updatedAt: true
+              }
+            }
+          }
         }
       }
     });
@@ -81,9 +96,24 @@ export class CartQuery {
       where: { id: cartItemId },
       data: { quantity },
       select: {
-        id: true, quantity: true,
+        id: true,
+        quantity: true,
         product: {
-          select: { id: true, name: true, price: true, defaultImage: true, salePrice: true }
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            salePrice: true,
+            defaultImage: {
+              select: {
+                id: true,
+                url: true,
+                productId: true,
+                createdAt: true,
+                updatedAt: true
+              }
+            }
+          }
         }
       }
     });

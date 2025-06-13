@@ -76,7 +76,7 @@ export class CartController {
   @ApiOperation({ summary: 'Cập nhật số lượng sản phẩm trong giỏ hàng' })
   @ApiCreatedResponse({ type: SuccessResponseDto })
   async updateCartItem(@Param('cartItemId') cartItemId: string, @Body() updateCartItemDto: UpdateCartItemDto) {
-    await this.CartQuery.updateCartItem(cartItemId, updateCartItemDto.quantity);
-    return new SuccessResponseDto('Cập nhật số lượng sản phẩm trong giỏ hàng thành công', null);
+    const data = await this.CartQuery.updateCartItem(cartItemId, updateCartItemDto.quantity);
+    return new SuccessResponseDto('Cập nhật số lượng sản phẩm trong giỏ hàng thành công', data);
   }
 }
