@@ -37,16 +37,16 @@ export class ProductStatisticsAction {
     // Get sales by category
     const salesByCategoryRaw = await this.prisma.$queryRaw`
       SELECT 
-        c.id as 'categoryId',
-        c.name as 'categoryName',
-        SUM(oi.quantity) as 'totalQuantity',
-        SUM(oi.price) as 'totalRevenue'
-      FROM 'OrderItem' oi
-      JOIN 'Product' p ON oi.'productId' = p.id
-      JOIN 'SubCategory' sc ON p.'subCategoryId' = sc.id
-      JOIN 'Category' c ON sc.'categoryId' = c.id
+        c.id as "categoryId",
+        c.name as "categoryName",
+        SUM(oi.quantity) as "totalQuantity",
+        SUM(oi.price) as "totalRevenue"
+      FROM "OrderItem" oi
+      JOIN "Product" p ON oi."productId" = p.id
+      JOIN "SubCategory" sc ON p."subCategoryId" = sc.id
+      JOIN "Category" c ON sc."categoryId" = c.id
       GROUP BY c.id, c.name
-      ORDER BY 'totalQuantity' DESC
+      ORDER BY "totalQuantity" DESC
     `;
 
     // Convert BigInt to Number
@@ -55,18 +55,18 @@ export class ProductStatisticsAction {
     // Get sales by subcategory
     const salesBySubCategoryRaw = await this.prisma.$queryRaw`
       SELECT 
-        sc.id as 'subCategoryId',
-        sc.name as 'subCategoryName',
-        c.id as 'categoryId',
-        c.name as 'categoryName',
-        SUM(oi.quantity) as 'totalQuantity',
-        SUM(oi.price) as 'totalRevenue'
-      FROM 'OrderItem' oi
-      JOIN 'Product' p ON oi.'productId' = p.id
-      JOIN 'SubCategory' sc ON p.'subCategoryId' = sc.id
-      JOIN 'Category' c ON sc.'categoryId' = c.id
+        sc.id as "subCategoryId",
+        sc.name as "subCategoryName",
+        c.id as "categoryId",
+        c.name as "categoryName",
+        SUM(oi.quantity) as "totalQuantity",
+        SUM(oi.price) as "totalRevenue"
+      FROM "OrderItem" oi
+      JOIN "Product" p ON oi."productId" = p.id
+      JOIN "SubCategory" sc ON p."subCategoryId" = sc.id
+      JOIN "Category" c ON sc."categoryId" = c.id
       GROUP BY sc.id, sc.name, c.id, c.name
-      ORDER BY 'totalQuantity' DESC
+      ORDER BY "totalQuantity" DESC
     `;
 
     // Convert BigInt to Number

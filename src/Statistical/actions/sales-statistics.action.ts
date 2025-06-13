@@ -1,67 +1,57 @@
 import { PrismaService } from '@/Prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import * as dayjs from 'dayjs';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as utc from 'dayjs/plugin/utc';
+import { SalesStats } from '../types/statistics.types';
+import { formatStatusData, groupByDate } from '../utils/statistics.utils';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class SalesStatisticsAction {
   constructor(private prisma: PrismaService) { }
 
-  async execute() {
-    const ordersByStatus = await this.prisma.order.groupBy({
+  async execute(): Promise<SalesStats> {
+    const [ordersByStatus, ordersByPaymentStatus, ordersByDateRaw] = await Promise.all([
+      this.getOrdersByStatus(),
+      this.getOrdersByPaymentStatus(),
+      this.getOrdersByDate(),
+    ]);
+
+    const ordersByDate = groupByDate(ordersByDateRaw);
+    const totalOrders = ordersByDate.reduce((sum, item) => sum + item.count, 0);
+
+    return {
+      ordersByStatus: formatStatusData(ordersByStatus, 'orderStatus'),
+      ordersByPaymentStatus: formatStatusData(ordersByPaymentStatus, 'paymentStatus'),
+      ordersByDate,
+      totalOrders,
+    };
+  }
+
+  private async getOrdersByStatus() {
+    return this.prisma.order.groupBy({
       by: ['orderStatus'],
       _count: true,
     });
+  }
 
-    const ordersByPaymentStatus = await this.prisma.order.groupBy({
+  private async getOrdersByPaymentStatus() {
+    return this.prisma.order.groupBy({
       by: ['paymentStatus'],
       _count: true,
     });
+  }
 
-    const ordersByDateRaw = await this.prisma.order.groupBy({
+  private async getOrdersByDate() {
+    return this.prisma.order.groupBy({
       by: ['createdAt'],
       _count: true,
       orderBy: {
         createdAt: 'asc',
       },
     });
-
-    // Gộp theo ngày YYYY-MM-DD
-    const ordersByDate = Object.values(
-      ordersByDateRaw.reduce((acc, item) => {
-        const dateObj = item.createdAt;
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const year = dateObj.getFullYear();
-        const date = `${day}-${month}-${year}`;
-        
-        if (!acc[date]) {
-          acc[date] = { date, count: 0 };
-        }
-        acc[date].count += item._count;
-        return acc;
-      }, {} as Record<string, { date: string; count: number }>)
-    );
-
-    const totalOrders = ordersByDate.reduce((sum, item) => sum + item.count, 0);
-
-    return {
-      ordersByStatus: this.formatOrderStatusData(ordersByStatus),
-      ordersByPaymentStatus: this.formatPaymentStatusData(ordersByPaymentStatus),
-      ordersByDate,
-      totalOrders,
-    };
-  }
-
-  private formatOrderStatusData(data: any[]) {
-    return data.map(item => ({
-      status: item.orderStatus,
-      count: item._count,
-    }));
-  }
-
-  private formatPaymentStatusData(data: any[]) {
-    return data.map(item => ({
-      status: item.paymentStatus,
-      count: item._count,
-    }));
   }
 }

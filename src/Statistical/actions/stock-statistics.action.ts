@@ -1,32 +1,37 @@
 import { PrismaService } from '@/Prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { ChangeType } from '@prisma/client';
+import * as dayjs from 'dayjs';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as utc from 'dayjs/plugin/utc';
+import { ImportValueStats, ProductStats, StockMovementStats, StockStats } from '../types/statistics.types';
+import { formatDateTime, takeTop } from '../utils/statistics.utils';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 @Injectable()
 export class StockStatisticsAction {
+  private readonly LOW_STOCK_THRESHOLD = 10;
+  private readonly TOP_PRODUCTS_LIMIT = 10;
+  private readonly RECENT_INVOICES_LIMIT = 5;
+
   constructor(private prisma: PrismaService) { }
 
-  async execute() {
-
-    return await this.getStockData();
-
-  }
-
-  private async getStockData() {
-    // Get stock levels for products
-    const stockLevels = await this.getStockLevels();
-
-    // Get stock movement (changes over time)
-    const stockMovement = await this.getStockMovement();
-
-    // Get out of stock products
-    const outOfStockProducts = await this.getOutOfStockProducts();
-
-    // Get low stock products
-    const lowStockProducts = await this.getLowStockProducts();
-
-    // Get import value information
-    const importValueData = await this.getImportValueData();
+  async execute(): Promise<StockStats> {
+    const [
+      stockLevels,
+      stockMovement,
+      outOfStockProducts,
+      lowStockProducts,
+      importValueData
+    ] = await Promise.all([
+      this.getStockLevels(),
+      this.getStockMovement(),
+      this.getOutOfStockProducts(),
+      this.getLowStockProducts(),
+      this.getImportValueData()
+    ]);
 
     return {
       stockLevels,
@@ -42,10 +47,6 @@ export class StockStatisticsAction {
   }
 
   private async getStockLevels() {
-    let orderBy: any = {};
-
-    orderBy = { quantity: 'asc' };
-
     const stocks = await this.prisma.stock.findMany({
       where: {
         product: {
@@ -73,8 +74,9 @@ export class StockStatisticsAction {
           },
         },
       },
-      orderBy,
-
+      orderBy: {
+        quantity: 'asc',
+      },
     });
 
     return stocks.map(stock => ({
@@ -89,7 +91,7 @@ export class StockStatisticsAction {
     }));
   }
 
-  private async getOutOfStockProducts(limit = 10) {
+  private async getOutOfStockProducts() {
     return this.prisma.stock.findMany({
       where: {
         quantity: 0,
@@ -121,12 +123,12 @@ export class StockStatisticsAction {
     });
   }
 
-  private async getLowStockProducts(threshold = 10, limit = 10) {
+  private async getLowStockProducts() {
     return this.prisma.stock.findMany({
       where: {
         quantity: {
           gt: 0,
-          lte: threshold,
+          lte: this.LOW_STOCK_THRESHOLD,
         },
         product: {
           isDeleted: false,
@@ -159,9 +161,32 @@ export class StockStatisticsAction {
     });
   }
 
-  private async getStockMovement(limit = 10) {
-    // Get the most recent stock changes
-    const stockLogs = await this.prisma.stockLog.findMany({
+  private async getStockMovement(): Promise<StockMovementStats> {
+    const [stockLogs, changeTypeStats] = await Promise.all([
+      this.getStockLogs(),
+      this.getChangeTypeStats()
+    ]);
+
+    const summary = this.calculateChangeTypeSummary(changeTypeStats);
+
+    return {
+      recentChanges: stockLogs.map(log => ({
+        id: log.id,
+        productId: log.stock.productId,
+        productName: log.stock.product.name,
+        changeType: log.changeType,
+        change: Number(log.change),
+        createdAt: formatDateTime(log.createdAt),
+        referenceType: log.referenceType,
+        referenceId: log.referenceId,
+        note: log.note,
+      })),
+      changeTypeSummary: summary,
+    };
+  }
+
+  private async getStockLogs() {
+    return this.prisma.stockLog.findMany({
       where: {
         stock: {
           product: {
@@ -185,9 +210,10 @@ export class StockStatisticsAction {
         createdAt: 'desc',
       },
     });
+  }
 
-    // Group by change type and calculate totals
-    const changeTypeStats = await this.prisma.stockLog.groupBy({
+  private async getChangeTypeStats() {
+    return this.prisma.stockLog.groupBy({
       by: ['changeType'],
       where: {
         stock: {
@@ -200,53 +226,34 @@ export class StockStatisticsAction {
         change: true,
       },
     });
+  }
 
-    const importCount = Number(changeTypeStats.find(stat => stat.changeType === ChangeType.import)?._sum.change || 0);
-    const saleCount = Number(changeTypeStats.find(stat => stat.changeType === ChangeType.sale)?._sum.change || 0);
-    const returnCount = Number(changeTypeStats.find(stat => stat.changeType === ChangeType.return)?._sum.change || 0);
-    const cancelCount = Number(changeTypeStats.find(stat => stat.changeType === ChangeType.cancel)?._sum.change || 0);
-    const adjustmentCount = Number(changeTypeStats.find(stat => stat.changeType === ChangeType.adjustment)?._sum.change || 0);
-
+  private calculateChangeTypeSummary(changeTypeStats: any[]) {
     return {
-      recentChanges: stockLogs.map(log => ({
-        id: log.id,
-        productId: log.stock.productId,
-        productName: log.stock.product.name,
-        changeType: log.changeType,
-        change: Number(log.change),
-        createdAt: log.createdAt,
-        referenceType: log.referenceType,
-        referenceId: log.referenceId,
-        note: log.note,
-      })),
-      changeTypeSummary: {
-        import: importCount,
-        sale: saleCount,
-        return: returnCount,
-        cancel: cancelCount,
-        adjustment: adjustmentCount,
-      },
+      import: Number(changeTypeStats.find(stat => stat.changeType === ChangeType.import)?._sum.change || 0),
+      sale: Number(changeTypeStats.find(stat => stat.changeType === ChangeType.sale)?._sum.change || 0),
+      return: Number(changeTypeStats.find(stat => stat.changeType === ChangeType.return)?._sum.change || 0),
+      cancel: Number(changeTypeStats.find(stat => stat.changeType === ChangeType.cancel)?._sum.change || 0),
+      adjustment: Number(changeTypeStats.find(stat => stat.changeType === ChangeType.adjustment)?._sum.change || 0),
     };
   }
 
-  private async getImportValueData() {
-    // Get total import value from invoices
-    const totalImportValue = await this.getTotalImportValue();
-
-    // Get total import quantity
-    const totalImportQuantity = await this.getTotalImportQuantity();
-
-    // Get total sales quantity
-    const totalSalesQuantity = await this.getTotalSalesQuantity();
-
-    // Get total returns quantity
-    const totalReturnsQuantity = await this.getTotalReturnsQuantity();
-
-    // Get recent invoices with their values
-    const recentInvoices = await this.getRecentInvoices();
-
-    // Get top products by import value
-    const topProductsByImportValue = await this.getTopProductsByImportValue();
+  private async getImportValueData(): Promise<ImportValueStats> {
+    const [
+      totalImportValue,
+      totalImportQuantity,
+      totalSalesQuantity,
+      totalReturnsQuantity,
+      recentInvoices,
+      topProductsByImportValue
+    ] = await Promise.all([
+      this.getTotalImportValue(),
+      this.getTotalImportQuantity(),
+      this.getTotalSalesQuantity(),
+      this.getTotalReturnsQuantity(),
+      this.getRecentInvoices(),
+      this.getTopProductsByImportValue()
+    ]);
 
     return {
       totalImportValue,
@@ -272,7 +279,6 @@ export class StockStatisticsAction {
   }
 
   private async getTotalImportQuantity() {
-    // Sum the total quantity of all imported products
     const result = await this.prisma.invoiceItem.aggregate({
       _sum: {
         quantity: true,
@@ -305,20 +311,20 @@ export class StockStatisticsAction {
     return Number(result._sum.quantity || 0);
   }
 
-  private async getTotalReturnsQuantity() {
+  private async getTotalReturnsQuantity(): Promise<number> {
     const result = await this.prisma.productReturn.aggregate({
-      _count: {
-        id: true,
-      },
       where: {
-        productReturnStatus: 'completed',
+        status: 'COMPLETED',
+      },
+      _sum: {
+        quantity: true,
       },
     });
 
-    return Number(result._count.id || 0);
+    return result._sum.quantity || 0;
   }
 
-  private async getRecentInvoices(limit = 5) {
+  private async getRecentInvoices() {
     const invoices = await this.prisma.invoice.findMany({
       where: {
         isDeleted: false,
@@ -334,6 +340,7 @@ export class StockStatisticsAction {
       orderBy: {
         createdAt: 'desc',
       },
+      take: this.RECENT_INVOICES_LIMIT,
     });
 
     return invoices.map(invoice => ({
@@ -341,12 +348,21 @@ export class StockStatisticsAction {
       supplierId: invoice.supplierId,
       supplierName: invoice.supplier.name,
       totalAmount: Number(invoice.totalAmount),
-      createdAt: invoice.createdAt,
+      createdAt: formatDateTime(invoice.createdAt),
     }));
   }
 
-  private async getTopProductsByImportValue(limit = 10) {
-    const result = await this.prisma.invoiceItem.groupBy({
+  private async getTopProductsByImportValue(): Promise<ProductStats[]> {
+    const [result, products] = await Promise.all([
+      this.getProductImportStats(),
+      this.getProductsInfo()
+    ]);
+
+    return this.formatProductImportStats(result, products);
+  }
+
+  private async getProductImportStats() {
+    return this.prisma.invoiceItem.groupBy({
       by: ['productId'],
       where: {
         invoice: {
@@ -363,10 +379,13 @@ export class StockStatisticsAction {
         },
       },
     });
+  }
 
-    // Get product information for these items
+  private async getProductsInfo() {
+    const result = await this.getProductImportStats();
     const productIds = result.map(item => item.productId);
-    const products = await this.prisma.product.findMany({
+
+    return this.prisma.product.findMany({
       where: {
         id: {
           in: productIds,
@@ -378,18 +397,40 @@ export class StockStatisticsAction {
         name: true,
       },
     });
+  }
 
-    return result.map(item => {
-      const product = products.find(p => p.id === item.productId);
-      return {
-        productId: item.productId,
-        productName: product?.name || 'Unknown Product',
-        totalImportValue: Number(item._sum.subtotal || 0),
-        totalQuantity: Number(item._sum.quantity || 0),
-        averageImportPrice: item._sum.quantity
-          ? Math.round(Number(item._sum.subtotal) / Number(item._sum.quantity))
-          : 0,
-      };
+  private formatProductImportStats(stats: any[], products: any[]): ProductStats[] {
+    return takeTop(
+      stats.map(item => {
+        const product = products.find(p => p.id === item.productId);
+        return {
+          productId: item.productId,
+          productName: product?.name || 'Unknown Product',
+          quantity: Number(item._sum.quantity || 0),
+          value: Number(item._sum.subtotal || 0),
+          averagePrice: item._sum.quantity
+            ? Math.round(Number(item._sum.subtotal) / Number(item._sum.quantity))
+            : 0,
+        };
+      }),
+      this.TOP_PRODUCTS_LIMIT
+    );
+  }
+
+  async getReturnedProductsCount(startDate: Date, endDate: Date): Promise<number> {
+    const result = await this.prisma.productReturn.aggregate({
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _count: {
+        _all: true,
+      },
     });
+
+    return result._count._all || 0;
   }
 } 

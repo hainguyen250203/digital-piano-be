@@ -20,15 +20,21 @@ import { ResOrderDto } from '@/Order/api/dto/resOrder.dto';
 import { VerifyReturnUrlDto } from '@/Order/api/dto/verify-return-url-dto';
 import { OrderQuery } from '@/Order/queries/order.query';
 import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { Request } from 'express';
+import { PrismaService } from '../../Prisma/prisma.service';
+import { CreateReturnRequestAction } from '../actions/create-return-request.action';
+import { UpdateReturnStatusAction } from '../actions/update-return-status.action';
+import { CreateReturnRequestDto } from './dto/create-return-request.dto';
+import { UpdateReturnStatusDto } from './dto/update-return-status.dto';
 
 @Controller({
   path: 'orders',
   version: '1'
 })
+@ApiTags('Orders')
 export class OrderController {
   constructor(
     private readonly createOrderAction: CreateOrderAction,
@@ -39,7 +45,10 @@ export class OrderController {
     private readonly repaymentOrderAction: RepaymentAction,
     private readonly adminCancelOrderAction: AdminCancelOrderAction,
     private readonly userConfirmDeliveryAction: UserConfirmDeliveryAction,
-    private readonly userChangePaymentMethodAction: UserChangePaymentMethodAction
+    private readonly userChangePaymentMethodAction: UserChangePaymentMethodAction,
+    private readonly prisma: PrismaService,
+    private createReturnRequestAction: CreateReturnRequestAction,
+    private updateReturnStatusAction: UpdateReturnStatusAction,
   ) { }
 
   @Post()
@@ -49,7 +58,7 @@ export class OrderController {
   @ApiResponse({ type: ResOrderDto })
   async createOrder(@Req() req: Request, @Body() body: ReqCreateOrderDto, @GetUser('userId') userId: string) {
     try {
-      const ipAddr = this.getClientIp(req)
+      const ipAddr = this.getClientIp(req);
       const order = await this.createOrderAction.execute(userId, ipAddr, body);
       const transformedOrder = plainToInstance(ResOrderDto, order);
       return new SuccessResponseDto('Đơn hàng đã được tạo thành công', transformedOrder);
@@ -157,7 +166,7 @@ export class OrderController {
   @ApiOperation({ summary: 'Thanh toán lại đơn hàng' })
   @ApiResponse({ type: ResRepaymentDto })
   async repaymentOrder(@Param('id') id: string, @Req() req: Request) {
-    const ipAddr = this.getClientIp(req)
+    const ipAddr = this.getClientIp(req);
     const order = await this.repaymentOrderAction.execute(id, ipAddr);
     return new SuccessResponseDto('Đơn hàng đã được thanh toán lại', plainToInstance(ResRepaymentDto, order));
   }
@@ -180,5 +189,84 @@ export class OrderController {
   async userChangePaymentMethod(@Param('id') id: string, @GetUser('userId') userId: string, @Body() body: ReqChangePaymentMethodDto) {
     const order = await this.userChangePaymentMethodAction.execute(id, userId, body.paymentMethod);
     return new SuccessResponseDto('Phương thức thanh toán đã được thay đổi', plainToInstance(ResOrderDto, order));
+  }
+
+  @Post(':orderId/returns')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('customer')
+  @ApiOperation({ summary: 'Create a return request for an order item' })
+  @ApiResponse({ status: 201, description: 'Return request created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 404, description: 'Order item not found' })
+  async createReturnRequest(
+    @Req() req,
+    @Body() dto: CreateReturnRequestDto,
+  ) {
+    return this.createReturnRequestAction.execute(req.user.id, dto);
+  }
+
+  @Get('returns')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('customer')
+  @ApiOperation({ summary: 'Get user return requests' })
+  @ApiResponse({ status: 200, description: 'Return requests retrieved successfully' })
+  async getUserReturnRequests(@Req() req) {
+    return this.prisma.productReturn.findMany({
+      where: {
+        order: {
+          userId: req.user.id,
+        },
+      },
+      include: {
+        order: true,
+        orderItem: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  @Get('returns/admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Get all return requests (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Return requests retrieved successfully' })
+  async getAllReturnRequests() {
+    return this.prisma.productReturn.findMany({
+      include: {
+        order: {
+          include: {
+            user: true,
+          },
+        },
+        orderItem: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  @Patch('returns/:returnId/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  @ApiOperation({ summary: 'Update return request status (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Return request status updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid request' })
+  @ApiResponse({ status: 404, description: 'Return request not found' })
+  async updateReturnStatus(
+    @Param('returnId') returnId: string,
+    @Body() dto: UpdateReturnStatusDto,
+  ) {
+    return this.updateReturnStatusAction.execute(returnId, dto);
   }
 }

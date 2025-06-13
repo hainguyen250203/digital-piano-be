@@ -93,7 +93,7 @@ export class AdminCancelOrderAction {
     await this.notificationService.sendOrderStatusNotification(
       userId,
       orderId,
-      `Đơn hàng đã bị hủy bởi quản trị viên`,
+      'Đơn hàng đã bị hủy bởi quản trị viên',
       NotificationType.order
     );
 

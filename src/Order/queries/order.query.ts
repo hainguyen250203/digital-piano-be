@@ -2,7 +2,7 @@ import { UpdateOrderParams } from '@/Order/actions/update-order.params';
 import { CreateOrderParams } from '@/Order/queries/params/create-order.params';
 import { PrismaService } from '@/Prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { Order, PaymentStatus } from '@prisma/client';
+import { Order, OrderStatus, PaymentStatus } from '@prisma/client';
 
 @Injectable()
 export class OrderQuery {
@@ -99,23 +99,267 @@ export class OrderQuery {
   }
 
   async getOrdersByUserId(userId: string) {
-    return this.prisma.order.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } });
+    return this.prisma.order.findMany({
+      where: {
+        userId
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                defaultImage: true,
+                price: true,
+                salePrice: true,
+              }
+            },
+            productReturns: {
+              where: {
+                status: {
+                  in: ['PENDING', 'APPROVED', 'COMPLETED']
+                }
+              },
+              select: {
+                id: true,
+                status: true,
+                quantity: true,
+                createdAt: true,
+              }
+            }
+          }
+        },
+        address: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            street: true,
+            ward: true,
+            district: true,
+            city: true,
+          }
+        },
+        discount: {
+          select: {
+            id: true,
+            code: true,
+            discountType: true,
+            value: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phoneNumber: true,
+          }
+        },
+      },
+      orderBy: [
+        { createdAt: 'desc' },
+        { updatedAt: 'desc' }
+      ],
+    });
   }
 
   async getAllOrders() {
     return this.prisma.order.findMany({
       include: {
-        items: true,
-        address: true,
-        discount: true,
-        user: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                defaultImage: true,
+                price: true,
+                salePrice: true,
+              }
+            },
+            productReturns: {
+              where: {
+                status: {
+                  in: ['PENDING', 'APPROVED', 'COMPLETED']
+                }
+              },
+              select: {
+                id: true,
+                status: true,
+                quantity: true,
+                createdAt: true,
+              }
+            }
+          }
+        },
+        address: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            street: true,
+            ward: true,
+            district: true,
+            city: true,
+          }
+        },
+        discount: {
+          select: {
+            id: true,
+            code: true,
+            discountType: true,
+            value: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phoneNumber: true,
+          }
+        },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { createdAt: 'desc' },
+        { updatedAt: 'desc' }
+      ],
     });
   }
 
+  async getOrdersByStatus(status: OrderStatus) {
+    return this.prisma.order.findMany({
+      where: {
+        orderStatus: status
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                defaultImage: true,
+                price: true,
+                salePrice: true,
+              }
+            },
+            productReturns: {
+              where: {
+                status: {
+                  in: ['PENDING', 'APPROVED', 'COMPLETED']
+                }
+              },
+              select: {
+                id: true,
+                status: true,
+                quantity: true,
+                createdAt: true,
+              }
+            }
+          }
+        },
+        address: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            street: true,
+            ward: true,
+            district: true,
+            city: true,
+          }
+        },
+        discount: {
+          select: {
+            id: true,
+            code: true,
+            discountType: true,
+            value: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phoneNumber: true,
+          }
+        },
+      },
+      orderBy: [
+        { createdAt: 'desc' },
+        { updatedAt: 'desc' }
+      ],
+    });
+  }
 
+  async getOrdersByDateRange(startDate: Date, endDate: Date) {
+    return this.prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        }
+      },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                defaultImage: true,
+                price: true,
+                salePrice: true,
+              }
+            },
+            productReturns: {
+              where: {
+                status: {
+                  in: ['PENDING', 'APPROVED', 'COMPLETED']
+                }
+              },
+              select: {
+                id: true,
+                status: true,
+                quantity: true,
+                createdAt: true,
+              }
+            }
+          }
+        },
+        address: {
+          select: {
+            id: true,
+            fullName: true,
+            phone: true,
+            street: true,
+            ward: true,
+            district: true,
+            city: true,
+          }
+        },
+        discount: {
+          select: {
+            id: true,
+            code: true,
+            discountType: true,
+            value: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phoneNumber: true,
+          }
+        },
+      },
+      orderBy: [
+        { createdAt: 'desc' },
+        { updatedAt: 'desc' }
+      ],
+    });
+  }
 }
 
