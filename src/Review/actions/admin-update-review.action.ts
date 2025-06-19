@@ -3,22 +3,20 @@ import { ReviewResponseDto } from '@/Review/apis/dto/review-response.dto';
 import { UpdateReviewDto } from '@/Review/apis/dto/update-review.dto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-
 @Injectable()
-export class UpdateReviewAction {
+export class AdminUpdateReviewAction {
   constructor(private prisma: PrismaService) { }
 
-  async execute(userId: string, reviewId: string, dto: UpdateReviewDto): Promise<ReviewResponseDto> {
-    // Check if review exists and belongs to user
-    const review = await this.prisma.review.findFirst({
+  async execute(adminId: string, reviewId: string, dto: UpdateReviewDto): Promise<ReviewResponseDto> {
+    // Check if review exists (admin can update any review)
+    const review = await this.prisma.review.findUnique({
       where: {
         id: reviewId,
-        userId: userId,
       },
     });
 
     if (!review) {
-      throw new NotFoundException('Đánh giá không tồn tại hoặc không thuộc về bạn');
+      throw new NotFoundException('Đánh giá không tồn tại');
     }
 
     // Prepare update data
