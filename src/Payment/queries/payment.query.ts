@@ -37,11 +37,7 @@ export class PaymentQuery {
       vnp_CreateDate: parseInt(now.format('YYYYMMDDHHmmss')),
       vnp_ExpireDate: parseInt(expireDate.format('YYYYMMDDHHmmss')),
     };
-
-    console.log('🚀 ~ PaymentQuery ~ buildPaymentUrl ~ paymentParams:', paymentParams);
-
     const url = this.vnpayService.buildPaymentUrl(paymentParams);
-    console.log('🚀 ~ PaymentQuery ~ buildPaymentUrl ~ url:', url);
     return url;
   }
 
