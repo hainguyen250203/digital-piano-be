@@ -34,6 +34,5 @@ export class AddProductToCartAction {
 
       return await this.cartQuery.createCartItem(1, productId, cart.id);
     }
-
   }
 }

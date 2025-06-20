@@ -68,8 +68,8 @@ export class CartController {
   @ApiOperation({ summary: 'Xóa sản phẩm khỏi giỏ hàng' })
   @ApiCreatedResponse({ type: SuccessResponseDto })
   async deleteCartItem(@Param('cartItemId') cartItemId: string) {
-    await this.CartQuery.deleteCartItem(cartItemId);
-    return new SuccessResponseDto('Xóa sản phẩm khỏi giỏ hàng thành công', null);
+    const data = await this.CartQuery.deleteCartItem(cartItemId);
+    return new SuccessResponseDto('Xóa sản phẩm khỏi giỏ hàng thành công', data);
   }
 
   @Patch('/:cartItemId')

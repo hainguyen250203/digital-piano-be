@@ -120,10 +120,34 @@ export class CartQuery {
     return cartItem;
   }
 
-
-
   async deleteCartItem(cartItemId: string) {
-    const cartItem = await this.prisma.cartItem.delete({ where: { id: cartItemId } });
+    const cartItem = await this.prisma.cartItem.findUnique({
+      where: { id: cartItemId },
+      select: {
+        id: true,
+        quantity: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            salePrice: true,
+            defaultImage: {
+              select: {
+                id: true,
+                url: true,
+                productId: true,
+                createdAt: true,
+                updatedAt: true
+              }
+            }
+          }
+        }
+      }
+    });
+    if (cartItem) {
+      await this.prisma.cartItem.delete({ where: { id: cartItemId } });
+    }
     return cartItem;
   }
 
