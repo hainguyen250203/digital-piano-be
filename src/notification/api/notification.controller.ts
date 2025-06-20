@@ -99,8 +99,4 @@ export class NotificationController {
     return new SuccessResponseDto('Xóa thông báo thành công', null);
   }
 
-
-
-
-
 } 

@@ -13,6 +13,7 @@ import { OrderModule } from '@/Order/order.module';
 import { PaymentModule } from '@/Payment/payment.module';
 import { PrismaModule } from '@/Prisma/prisma.module';
 import { ProductModule } from '@/Product/product.module';
+import { ProductReturnModule } from '@/ProductReturn/product-return.module';
 import { ProductTypeModule } from '@/ProductType/product-type.module';
 import { ProfileModule } from '@/Profile/profile.module';
 import { ReviewModule } from '@/Review/review.module';
@@ -28,7 +29,7 @@ import { Module } from '@nestjs/common';
     ProfileModule, CategoryModule, SubCategoryModule, BrandModule, ProductTypeModule,
     ProductModule, SupplierModule, InvoiceModule, CartModule, WishlistModule,
     DiscountModule, UserModule, AddressModule, NotificationModule, OrderModule,
-    PaymentModule, StatisticalModule, ReviewModule
+    PaymentModule, StatisticalModule, ReviewModule, ProductReturnModule
   ],
   controllers: [AppController]
 })

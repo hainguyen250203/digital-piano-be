@@ -1,19 +1,51 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
-import { Expose } from 'class-transformer';
+import { OrderStatus, PaymentMethod, PaymentStatus, ReturnStatus } from '@prisma/client';
+import { Expose, Type } from 'class-transformer';
+
+export class ResOrderItemProductDto {
+  @ApiProperty()
+  id: string;
+  @ApiProperty()
+  name: string;
+  @ApiProperty({ required: false })
+  defaultImage?: any;
+  @ApiProperty({ required: false })
+  price?: number;
+  @ApiProperty({ required: false })
+  salePrice?: number;
+}
+
+export class ResOrderProductReturnDto {
+  @ApiProperty()
+  id: string;
+  @ApiProperty({ enum: ReturnStatus })
+  status: ReturnStatus;
+  @ApiProperty()
+  quantity: number;
+  @ApiProperty()
+  createdAt: Date;
+  @ApiProperty({ type: ResOrderItemProductDto })
+  @Type(() => ResOrderItemProductDto)
+  product: ResOrderItemProductDto;
+}
 
 export class ResOrderItemDto {
   @ApiProperty({ description: 'Order item ID' })
   id: string;
 
-  @ApiProperty({ description: 'Product ID' })
-  productId: string;
+  @ApiProperty({ type: ResOrderItemProductDto, description: 'Product info' })
+  @Type(() => ResOrderItemProductDto)
+  product: ResOrderItemProductDto;
 
   @ApiProperty({ description: 'Item price' })
   price: number;
 
   @ApiProperty({ description: 'Item quantity' })
   quantity: number;
+
+  @ApiProperty({ type: [ResOrderProductReturnDto], description: 'Các yêu cầu trả hàng của item này' })
+  @Type(() => ResOrderProductReturnDto)
+  productReturns?: ResOrderProductReturnDto[];
 }
 
 export class ResReviewDto {

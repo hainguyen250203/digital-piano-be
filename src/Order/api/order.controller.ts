@@ -25,10 +25,6 @@ import { Role } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { Request } from 'express';
 import { PrismaService } from '../../Prisma/prisma.service';
-import { CreateReturnRequestAction } from '../actions/create-return-request.action';
-import { UpdateReturnStatusAction } from '../actions/update-return-status.action';
-import { CreateReturnRequestDto } from './dto/create-return-request.dto';
-import { UpdateReturnStatusDto } from './dto/update-return-status.dto';
 
 @Controller({
   path: 'orders',
@@ -47,8 +43,6 @@ export class OrderController {
     private readonly userConfirmDeliveryAction: UserConfirmDeliveryAction,
     private readonly userChangePaymentMethodAction: UserChangePaymentMethodAction,
     private readonly prisma: PrismaService,
-    private createReturnRequestAction: CreateReturnRequestAction,
-    private updateReturnStatusAction: UpdateReturnStatusAction,
   ) { }
 
   @Post()
@@ -75,7 +69,7 @@ export class OrderController {
   @ApiResponse({ type: [ResOrderDto] })
   async getOrders() {
     const orders = await this.orderQuery.getAllOrders();
-    return new SuccessResponseDto('Danh sách đơn hàng', plainToInstance(ResOrderDto, orders));
+    return new SuccessResponseDto('Lấy danh sách đơn hàng thành công', plainToInstance(ResOrderDto, orders));
   }
 
   @Get('me')
@@ -85,7 +79,7 @@ export class OrderController {
   @ApiResponse({ type: [ResOrderDto] })
   async getOrdersByUserId(@GetUser('userId') userId: string) {
     const orders = await this.orderQuery.getOrdersByUserId(userId);
-    return new SuccessResponseDto('Danh sách đơn hàng', plainToInstance(ResOrderDto, orders));
+    return new SuccessResponseDto('Lấy danh sách đơn hàng của người dùng thành công', plainToInstance(ResOrderDto, orders));
   }
 
   @Get('me/:orderId')
@@ -95,7 +89,7 @@ export class OrderController {
   @ApiResponse({ type: ResOrderDto })
   async getOrderDetailByUserId(@Param('orderId') orderId: string, @GetUser('userId') userId: string) {
     const order = await this.orderQuery.getOrderDetailByUserId(orderId, userId);
-    return new SuccessResponseDto('Thông tin đơn hàng', plainToInstance(ResOrderDto, order));
+    return new SuccessResponseDto('Lấy thông tin đơn hàng thành công', plainToInstance(ResOrderDto, order));
   }
 
   @Get(':id')
@@ -103,10 +97,10 @@ export class OrderController {
   @Roles(Role.admin, Role.staff)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Lấy thông tin đơn hàng' })
-  @ApiResponse({ status: 200, description: 'Thông tin đơn hàng' })
+  @ApiResponse({ status: 200, description: 'Lấy thông tin đơn hàng thành công' })
   async getOrderById(@Param('id') id: string) {
     const order = await this.orderQuery.getOrderById(id);
-    return new SuccessResponseDto('Thông tin đơn hàng', order);
+    return new SuccessResponseDto('Lấy thông tin đơn hàng thành công', plainToInstance(ResOrderDto, order));
   }
 
   private getClientIp(req: Request): string {
@@ -126,7 +120,6 @@ export class OrderController {
     return new SuccessResponseDto('URL trả về từ VNPAY đã được xác thực', plainToInstance(ResReturnUrlDto, result));
   }
 
-
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.admin, Role.staff)
@@ -136,7 +129,7 @@ export class OrderController {
   async updateOrderStatus(@Param('id') id: string, @Body() reqUpdateOrderStatusDto: ReqUpdateOrderStatusDto) {
     const status = reqUpdateOrderStatusDto.status;
     const order = await this.updateStatusOrderAction.execute(id, status);
-    return new SuccessResponseDto('Trạng thái đơn hàng đã được cập nhật', plainToInstance(ResOrderDto, order));
+    return new SuccessResponseDto('Cập nhật trạng thái đơn hàng thành công', plainToInstance(ResOrderDto, order));
   }
 
   @Post(':id/user-cancel')
@@ -146,7 +139,7 @@ export class OrderController {
   @ApiResponse({ type: ResOrderDto })
   async userCancelOrder(@Param('id') id: string) {
     const order = await this.userCancelOrderAction.execute(id);
-    return new SuccessResponseDto('Đơn hàng đã được hủy', plainToInstance(ResOrderDto, order));
+    return new SuccessResponseDto('Đơn hàng đã được hủy thành công', plainToInstance(ResOrderDto, order));
   }
 
   @Post(':id/admin-cancel')
@@ -157,7 +150,7 @@ export class OrderController {
   @ApiResponse({ type: ResOrderDto })
   async adminCancelOrder(@Param('id') id: string) {
     const order = await this.adminCancelOrderAction.execute(id);
-    return new SuccessResponseDto('Đơn hàng đã được hủy', plainToInstance(ResOrderDto, order));
+    return new SuccessResponseDto('Đơn hàng đã được hủy thành công', plainToInstance(ResOrderDto, order));
   }
 
   @Post(':id/repayment')
@@ -168,7 +161,7 @@ export class OrderController {
   async repaymentOrder(@Param('id') id: string, @Req() req: Request) {
     const ipAddr = this.getClientIp(req);
     const order = await this.repaymentOrderAction.execute(id, ipAddr);
-    return new SuccessResponseDto('Đơn hàng đã được thanh toán lại', plainToInstance(ResRepaymentDto, order));
+    return new SuccessResponseDto('Đơn hàng đã được thanh toán lại thành công', plainToInstance(ResRepaymentDto, order));
   }
 
   @Post(':id/user-confirm-delivery')
@@ -188,85 +181,6 @@ export class OrderController {
   @ApiResponse({ type: ResOrderDto })
   async userChangePaymentMethod(@Param('id') id: string, @GetUser('userId') userId: string, @Body() body: ReqChangePaymentMethodDto) {
     const order = await this.userChangePaymentMethodAction.execute(id, userId, body.paymentMethod);
-    return new SuccessResponseDto('Phương thức thanh toán đã được thay đổi', plainToInstance(ResOrderDto, order));
-  }
-
-  @Post(':orderId/returns')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('customer')
-  @ApiOperation({ summary: 'Create a return request for an order item' })
-  @ApiResponse({ status: 201, description: 'Return request created successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid request' })
-  @ApiResponse({ status: 404, description: 'Order item not found' })
-  async createReturnRequest(
-    @Req() req,
-    @Body() dto: CreateReturnRequestDto,
-  ) {
-    return this.createReturnRequestAction.execute(req.user.id, dto);
-  }
-
-  @Get('returns')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('customer')
-  @ApiOperation({ summary: 'Get user return requests' })
-  @ApiResponse({ status: 200, description: 'Return requests retrieved successfully' })
-  async getUserReturnRequests(@Req() req) {
-    return this.prisma.productReturn.findMany({
-      where: {
-        order: {
-          userId: req.user.id,
-        },
-      },
-      include: {
-        order: true,
-        orderItem: {
-          include: {
-            product: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-  }
-
-  @Get('returns/admin')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @ApiOperation({ summary: 'Get all return requests (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Return requests retrieved successfully' })
-  async getAllReturnRequests() {
-    return this.prisma.productReturn.findMany({
-      include: {
-        order: {
-          include: {
-            user: true,
-          },
-        },
-        orderItem: {
-          include: {
-            product: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-  }
-
-  @Patch('returns/:returnId/status')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  @ApiOperation({ summary: 'Update return request status (Admin only)' })
-  @ApiResponse({ status: 200, description: 'Return request status updated successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid request' })
-  @ApiResponse({ status: 404, description: 'Return request not found' })
-  async updateReturnStatus(
-    @Param('returnId') returnId: string,
-    @Body() dto: UpdateReturnStatusDto,
-  ) {
-    return this.updateReturnStatusAction.execute(returnId, dto);
+    return new SuccessResponseDto('Phương thức thanh toán đã được thay đổi thành công', plainToInstance(ResOrderDto, order));
   }
 }

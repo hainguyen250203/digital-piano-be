@@ -124,7 +124,7 @@ export class NotificationService {
       : `Thanh toán đơn hàng #${orderId} thất bại`;
 
     await this.sendNotificationAdminAndStaff(
-      `Trạng thái thanh toán`,
+      'Trạng thái thanh toán',
       adminMessage,
       type
     );
@@ -132,10 +132,10 @@ export class NotificationService {
 
   async deleteOne(id: string) {
     // Check if notification exists before attempting to delete
-    const notification = await this.prisma.notification.findUnique({ 
-      where: { id } 
+    const notification = await this.prisma.notification.findUnique({
+      where: { id }
     });
-    
+
     if (notification) {
       await this.prisma.notification.delete({ where: { id } });
     }

@@ -17,8 +17,6 @@ import { PrismaModule } from '@/Prisma/prisma.module';
 import { StockModule } from '@/Stock/stock.module';
 import { UserModule } from '@/User/user.module';
 import { Module } from '@nestjs/common';
-import { CreateReturnRequestAction } from './actions/create-return-request.action';
-import { UpdateReturnStatusAction } from './actions/update-return-status.action';
 
 @Module({
   imports: [
@@ -34,9 +32,9 @@ import { UpdateReturnStatusAction } from './actions/update-return-status.action'
   controllers: [OrderController],
   providers: [OrderQuery, CreateOrderAction, VerifyReturnUrlAction, UserCancelOrderAction,
     UpdateStatusOrderAction, RepaymentAction, AdminCancelOrderAction, UserConfirmDeliveryAction,
-    UserChangePaymentMethodAction, CreateReturnRequestAction, UpdateReturnStatusAction],
+    UserChangePaymentMethodAction,],
   exports: [OrderQuery, CreateOrderAction, VerifyReturnUrlAction, UserCancelOrderAction,
     UpdateStatusOrderAction, RepaymentAction, AdminCancelOrderAction, UserConfirmDeliveryAction,
-    UserChangePaymentMethodAction, CreateReturnRequestAction, UpdateReturnStatusAction]
+    UserChangePaymentMethodAction,]
 })
 export class OrderModule { }
