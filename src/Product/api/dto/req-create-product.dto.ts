@@ -44,7 +44,7 @@ export class ReqCreateProductDto {
   isFeatured?: boolean;
 
   @ApiProperty({ description: 'ID loại sản phẩm', required: true })
-  @IsUUID(undefined, { message: 'ID loại sản phẩm không hợp lệ. Định dạng UUID yêu cầu.' })
+  @IsOptional()
   productTypeId?: string;
 
   @ApiProperty({ description: 'ID thương hiệu', required: true })

@@ -2,7 +2,7 @@ import { NotificationService } from '@/notification/domain/notification.service'
 import { OrderQuery } from '@/Order/queries/order.query';
 import { StockService } from '@/Stock/api/stock.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ChangeType, NotificationType, OrderStatus, ReferenceType } from '@prisma/client';
+import { ChangeType, NotificationType, OrderStatus, PaymentStatus, ReferenceType } from '@prisma/client';
 
 @Injectable()
 export class UpdateStatusOrderAction {
@@ -21,8 +21,15 @@ export class UpdateStatusOrderAction {
       await this.handleCancelledOrderStock(order, orderId);
     }
 
-    // Update order status
-    const updatedOrder = await this.orderQuery.updateOrder({ id: orderId, orderStatus: status });
+    // Nếu giao hàng thành công thì cập nhật trạng thái thanh toán thành paid
+    let updateData: any = { id: orderId, orderStatus: status };
+    if (status === OrderStatus.delivered && order.paymentStatus !== PaymentStatus.paid) {
+      updateData.paymentStatus = PaymentStatus.paid;
+      updateData.paidAt = new Date();
+    }
+
+    // Update order status (và paymentStatus nếu cần)
+    const updatedOrder = await this.orderQuery.updateOrder(updateData);
 
     // Create notification based on status
     await this.createStatusNotification(order.userId, orderId, status);
