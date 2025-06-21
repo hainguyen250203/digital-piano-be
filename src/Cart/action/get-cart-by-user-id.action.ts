@@ -11,10 +11,7 @@ export class GetCartByUserIdAction {
       throw new NotFoundException('Cart not found');
     }
     const totalQuantity = cart.items.reduce((acc, item) => acc + item.quantity, 0);
-    const totalPrice = cart.items.reduce((acc, item) => {
-      const price = item.product.salePrice || item.product.price;
-      return acc + (Number(price) * item.quantity);
-    }, 0);
+    const totalPrice = cart.items.reduce((acc, item) => acc + (item.product.salePrice || item.product.price) * item.quantity, 0);
     return {
       ...cart,
       totalQuantity,

@@ -1,5 +1,6 @@
 import { PrismaService } from '@/Prisma/prisma.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { DiscountType } from '@prisma/client';
 import { CreateDiscountDto, GetDiscountParamsDto, UpdateDiscountDto } from '../api/dto/discount.dto';
 import {
   DiscountCreateDto,
@@ -186,21 +187,23 @@ export class DiscountQuery {
     }
 
     // Check minimum order total requirement
-    if (discount.minOrderTotal && orderTotal < Number(discount.minOrderTotal)) {
-      throw new BadRequestException({
-        message: `Đơn hàng phải có giá trị tối thiểu ${Number(discount.minOrderTotal).toLocaleString('vi-VN')}đ để sử dụng mã giảm giá này`
-      });
+    if (discount.minOrderTotal && orderTotal < discount.minOrderTotal) {
+      return {
+        isValid: false,
+        message: `Đơn hàng phải có giá trị tối thiểu ${discount.minOrderTotal.toLocaleString('vi-VN')}đ để sử dụng mã giảm giá này`
+      };
     }
 
     // Calculate discount amount
-    let discountAmount: number;
-    if (discount.discountType === 'percentage') {
-      discountAmount = (orderTotal * Number(discount.value)) / 100;
-      if (discount.maxDiscountValue && discountAmount > Number(discount.maxDiscountValue)) {
-        discountAmount = Number(discount.maxDiscountValue);
+    let discountAmount = 0;
+    if (discount.discountType === DiscountType.percentage) {
+      discountAmount = (orderTotal * discount.value) / 100;
+      // Apply max discount value if set
+      if (discount.maxDiscountValue && discountAmount > discount.maxDiscountValue) {
+        discountAmount = discount.maxDiscountValue;
       }
     } else {
-      discountAmount = Number(discount.value);
+      discountAmount = discount.value;
     }
 
     return {
@@ -208,18 +211,11 @@ export class DiscountQuery {
       discount: {
         id: discount.id,
         code: discount.code,
-        description: discount.description ?? undefined,
         discountType: discount.discountType,
-        value: Number(discount.value),
-        maxDiscountValue: discount.maxDiscountValue ? Number(discount.maxDiscountValue) : undefined,
-        usedCount: discount.usedCount,
-        isActive: discount.isActive,
-        startDate: discount.startDate ?? undefined,
-        endDate: discount.endDate ?? undefined,
-        maxUses: discount.maxUses ?? undefined,
-        minOrderTotal: discount.minOrderTotal ? Number(discount.minOrderTotal) : undefined,
-        discountAmount,
+        value: discount.value,
+        maxDiscountValue: discount.maxDiscountValue ?? undefined,
       },
+      discountAmount,
     };
   }
 

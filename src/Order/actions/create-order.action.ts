@@ -128,11 +128,11 @@ export class CreateOrderAction {
       }
 
       const price = product.salePrice || product.price;
-      orderTotal += Number(price) * item.quantity;
+      orderTotal += price * item.quantity;
 
       orderItems.push({
         productId: item.product.id,
-        price: Number(price),
+        price,
         quantity: item.quantity,
       });
     }
@@ -185,9 +185,9 @@ export class CreateOrderAction {
       throw new BadRequestException('Mã giảm giá đã được sử dụng hết lượt');
     }
 
-    if (discount.minOrderTotal && orderTotal < Number(discount.minOrderTotal)) {
+    if (discount.minOrderTotal && orderTotal < discount.minOrderTotal) {
       throw new BadRequestException(
-        `Tổng đơn hàng phải tối thiểu ${Number(discount.minOrderTotal).toLocaleString('vi-VN')}đ`,
+        `Tổng đơn hàng phải tối thiểu ${discount.minOrderTotal.toLocaleString('vi-VN')}đ`,
       );
     }
 
@@ -197,11 +197,11 @@ export class CreateOrderAction {
   private calculateDiscountAmount(discount: Discount, orderTotal: number): number {
     const baseAmount =
       discount.discountType === DiscountType.percentage
-        ? Math.floor((orderTotal * Number(discount.value)) / 100)
-        : Number(discount.value);
+        ? Math.floor((orderTotal * discount.value) / 100)
+        : discount.value;
 
     return discount.maxDiscountValue
-      ? Math.min(baseAmount, Number(discount.maxDiscountValue))
+      ? Math.min(baseAmount, discount.maxDiscountValue)
       : baseAmount;
   }
 

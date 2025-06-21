@@ -61,10 +61,7 @@ export class RepaymentAction {
       throw new BadRequestException('Chỉ có thể thanh toán lại đơn hàng sử dụng VNPAY');
     }
 
-    return {
-      ...order,
-      orderTotal: Number(order.orderTotal),
-    };
+    return order;
   }
 
   private async createPaymentUrl(order: OrderDetails, ipAddr: string): Promise<string> {
