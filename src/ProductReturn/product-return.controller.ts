@@ -49,7 +49,7 @@ export class ProductReturnController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.customer)
+  @Roles(Role.customer, Role.admin, Role.staff)
   @ApiOperation({ summary: 'Lấy danh sách yêu cầu trả hàng của người dùng' })
   @ApiResponse({ status: 200, description: 'Lấy danh sách yêu cầu trả hàng thành công', type: [ResProductReturnDto] })
   async getUserReturnRequests(@GetUser('userId') userId: string) {
