@@ -28,6 +28,7 @@ export class OrderQuery {
             id: true,
             productId: true,
             quantity: true,
+            price: true,
             product: {
               select: {
                 id: true,
@@ -73,6 +74,7 @@ export class OrderQuery {
             id: true,
             productId: true,
             quantity: true,
+            price: true,
             product: {
               select: {
                 id: true,
@@ -153,6 +155,7 @@ export class OrderQuery {
           select: {
             id: true,
             productId: true,
+            price: true,
             quantity: true,
             product: {
               select: {

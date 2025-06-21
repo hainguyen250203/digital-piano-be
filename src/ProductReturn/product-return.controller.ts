@@ -33,7 +33,7 @@ export class ProductReturnController {
 
   @Post(':orderId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.customer)
+  @Roles(Role.customer, Role.admin, Role.staff)
   @ApiOperation({ summary: 'Tạo yêu cầu trả hàng cho sản phẩm trong đơn hàng' })
   @ApiResponse({ status: 201, description: 'Tạo yêu cầu trả hàng thành công', type: ResProductReturnDto })
   @ApiResponse({ status: 400, description: 'Yêu cầu không hợp lệ' })
