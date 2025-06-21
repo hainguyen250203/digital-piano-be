@@ -198,7 +198,7 @@ export class InvoiceQuery {
         await tx.invoice.update({
           where: { id: invoiceId },
           data: {
-            totalAmount: invoice.totalAmount + subtotal,
+            totalAmount: Number(invoice.totalAmount) + subtotal,
           },
         });
       }
@@ -266,7 +266,7 @@ export class InvoiceQuery {
         await tx.invoice.update({
           where: { id: invoiceId },
           data: {
-            totalAmount: invoice.totalAmount - item.subtotal,
+            totalAmount: Number(invoice.totalAmount) - Number(item.subtotal),
           },
         });
       }
@@ -292,8 +292,8 @@ export class InvoiceQuery {
       // Calculate new values based on update data
       const quantity = updateDto.quantity ?? currentItem.quantity;
       const importPrice = updateDto.importPrice ?? currentItem.importPrice;
-      const newSubtotal = quantity * importPrice;
-      const subtotalDifference = newSubtotal - currentItem.subtotal;
+      const newSubtotal = quantity * Number(importPrice);
+      const subtotalDifference = newSubtotal - Number(currentItem.subtotal);
 
       // Update the invoice item
       const updatedItem = await tx.invoiceItem.update({
@@ -396,8 +396,8 @@ export class InvoiceQuery {
         // Calculate new values
         const quantity = itemUpdate.quantity ?? currentItem.quantity;
         const importPrice = itemUpdate.importPrice ?? currentItem.importPrice;
-        const newSubtotal = quantity * importPrice;
-        const subtotalDifference = newSubtotal - currentItem.subtotal;
+        const newSubtotal = quantity * Number(importPrice);
+        const subtotalDifference = newSubtotal - Number(currentItem.subtotal);
         totalAdjustment += subtotalDifference;
 
         // Update the item
@@ -537,8 +537,8 @@ export class InvoiceQuery {
           // Calculate new values
           const quantity = itemUpdate.quantity ?? currentItem.quantity;
           const importPrice = itemUpdate.importPrice ?? currentItem.importPrice;
-          const newSubtotal = quantity * importPrice;
-          const subtotalDifference = newSubtotal - currentItem.subtotal;
+          const newSubtotal = quantity * Number(importPrice);
+          const subtotalDifference = newSubtotal - Number(currentItem.subtotal);
           totalAdjustment += subtotalDifference;
 
           // Update the item

@@ -11,5 +11,4 @@ export type UpdateOrderParams = {
   orderTotal?: number;
   shippingFee?: number;
   note?: string;
-
 };

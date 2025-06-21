@@ -165,8 +165,8 @@ model Product {
   id             String        @id @default(uuid())
   name           String        @unique @db.VarChar(255)
   description    Json?         @db.Json
-  price          Int
-  salePrice      Int?
+  price          Decimal       @db.Decimal(15,2)
+  salePrice      Decimal?      @db.Decimal(15,2)
   videoUrl       String?       @db.VarChar(255)
   defaultImage   Image?        @relation("DefaultImage", fields: [defaultImageId], references: [id])
   defaultImageId String?       @unique
@@ -218,7 +218,7 @@ model OrderItem {
   productId         String
   product           Product        @relation(fields: [productId], references: [id])
   quantity          Int
-  price             Float
+  price             Decimal        @db.Decimal(15,2)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   productReturns    ProductReturn[]
@@ -284,9 +284,9 @@ model Order {
   paymentMethod  PaymentMethod
   transactionId  String?         @db.VarChar(255)
   paidAt         DateTime?
-  discountAmount Int?
-  orderTotal     Int
-  shippingFee    Int?
+  discountAmount Decimal?        @db.Decimal(15,2)
+  orderTotal     Decimal         @db.Decimal(15,2)
+  shippingFee    Decimal?        @db.Decimal(15,2)
   note           String?         @db.Text
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -319,7 +319,7 @@ model Invoice {
   id          String        @id @default(uuid())
   supplier    Supplier      @relation(fields: [supplierId], references: [id])
   supplierId  String
-  totalAmount Int
+  totalAmount Decimal       @db.Decimal(15,2)
   note        String?       @db.Text
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -334,8 +334,8 @@ model InvoiceItem {
   product     Product  @relation(fields: [productId], references: [id])
   productId   String
   quantity    Int
-  importPrice Int
-  subtotal    Int
+  importPrice Decimal  @db.Decimal(15,2)
+  subtotal    Decimal  @db.Decimal(15,2)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -371,12 +371,12 @@ model Discount {
   code             String       @unique @db.VarChar(50)
   description      String?      @db.Text
   discountType     DiscountType @default(fixed)
-  value            Int
+  value            Decimal      @db.Decimal(15,2)
   startDate        DateTime?
   endDate          DateTime?
   maxUses          Int?
-  minOrderTotal    Int?
-  maxDiscountValue Int?
+  minOrderTotal    Decimal?     @db.Decimal(15,2)
+  maxDiscountValue Decimal?     @db.Decimal(15,2)
   usedCount        Int          @default(0)
   isActive         Boolean      @default(true)
   isDeleted        Boolean      @default(false)

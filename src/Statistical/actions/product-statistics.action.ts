@@ -111,7 +111,7 @@ export class ProductStatisticsAction {
             price: product?.price || 0,
           },
           totalQuantity: item._sum?.quantity || 0,
-          totalRevenue: (item._sum?.quantity || 0) * (product?.price || 0),
+          totalRevenue: (item._sum?.quantity || 0) * Number(product?.price || 0),
         };
       }),
       salesByCategory: salesByCategory,

@@ -56,9 +56,17 @@ export class DiscountValidationResultDto {
   discount?: {
     id: string;
     code: string;
+    description?: string;
     discountType: DiscountType;
     value: number;
     maxDiscountValue?: number;
+    usedCount: number;
+    isActive: boolean;
+    startDate?: Date;
+    endDate?: Date;
+    maxUses?: number;
+    minOrderTotal?: number;
+    discountAmount?: number;
   };
   discountAmount?: number;
   message?: string;
