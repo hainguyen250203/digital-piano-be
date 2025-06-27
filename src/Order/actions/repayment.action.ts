@@ -1,9 +1,9 @@
-import { NotificationService } from "@/notification/domain/notification.service";
-import { OrderQuery } from "@/Order/queries/order.query";
-import { BuildPaymentParams } from "@/Payment/queries/params/buil-payment.params";
-import { PaymentQuery } from "@/Payment/queries/payment.query";
-import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
+import { NotificationService } from '@/notification/domain/notification.service';
+import { OrderQuery } from '@/Order/queries/order.query';
+import { BuildPaymentParams } from '@/Payment/queries/params/buil-payment.params';
+import { PaymentQuery } from '@/Payment/queries/payment.query';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 
 /**
  * Interface for Order object with required properties

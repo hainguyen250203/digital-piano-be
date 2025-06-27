@@ -1,14 +1,13 @@
-import { BuildPaymentParams } from "@/Payment/queries/params/buil-payment.params";
-import { PrismaService } from "@/Prisma/prisma.service";
-import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { VnpayService } from "nestjs-vnpay";
-import { BuildPaymentUrl, ReturnQueryFromVNPay } from "vnpay";
+import { BuildPaymentParams } from '@/Payment/queries/params/buil-payment.params';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { VnpayService } from 'nestjs-vnpay';
+import { BuildPaymentUrl, ReturnQueryFromVNPay } from 'vnpay';
 
 // Dayjs for timezone handling
-import dayjs from 'dayjs';
-import timezone from 'dayjs/plugin/timezone';
-import utc from 'dayjs/plugin/utc';
+import * as dayjs from 'dayjs';
+import * as timezone from 'dayjs/plugin/timezone';
+import * as utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -18,7 +17,6 @@ export class PaymentQuery {
   private readonly returnUrl: string;
 
   constructor(
-    private readonly prisma: PrismaService,
     private readonly vnpayService: VnpayService,
     private readonly configService: ConfigService,
   ) {
@@ -39,11 +37,7 @@ export class PaymentQuery {
       vnp_CreateDate: parseInt(now.format('YYYYMMDDHHmmss')),
       vnp_ExpireDate: parseInt(expireDate.format('YYYYMMDDHHmmss')),
     };
-
-    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ paymentParams:", paymentParams);
-
     const url = this.vnpayService.buildPaymentUrl(paymentParams);
-    console.log("🚀 ~ PaymentQuery ~ buildPaymentUrl ~ url:", url);
     return url;
   }
 

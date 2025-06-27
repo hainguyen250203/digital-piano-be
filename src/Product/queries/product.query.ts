@@ -1,18 +1,48 @@
 import { SortOrder } from '@/Common/dto/get-query.dto';
 import { PrismaService } from '@/Prisma/prisma.service';
+import { ResAllProductDto } from '@/Product/api/dto/res-all-product.dto';
 import { CreateProductQueryParams } from '@/Product/queries/dto/create-product.params';
 import { UpdateProductQueryParams } from '@/Product/queries/dto/update-product.params';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ProductQuery {
   constructor(private readonly prisma: PrismaService) { }
 
-  async create(createProductParams: CreateProductQueryParams) {
+  async create(createProductParams: CreateProductQueryParams): Promise<ResAllProductDto> {
     const { brandId, productTypeId, subCategoryId, images, defaultImageUrl, ...data } = createProductParams;
 
-    // Step 1: Create the product without images or defaultImage
+    // Create product with basic data and relationships
+    const product = await this.createProductWithRelations(data, {
+      brandId,
+      productTypeId,
+      subCategoryId
+    });
+
+    // Create and link images
+    const createdImages = await this.createProductImages(product.id, images);
+
+    // Set default image if images exist
+    if (createdImages.length > 0) {
+      await this.setDefaultImage(product.id, createdImages, defaultImageUrl);
+    }
+
+    // Fetch and return complete product data
+    const result = await this.getCompleteProduct(product.id);
+    if (!result) {
+      throw new Error('Product not found after creation');
+    }
+
+    return result;
+  }
+
+  private async createProductWithRelations(
+    data: Omit<CreateProductQueryParams, 'brandId' | 'productTypeId' | 'subCategoryId' | 'images' | 'defaultImageUrl'>,
+    relations: { brandId?: string; productTypeId?: string; subCategoryId: string }
+  ) {
+    const { brandId, productTypeId, subCategoryId } = relations;
     const productData: Prisma.ProductCreateInput = {
       ...data,
       subCategory: { connect: { id: subCategoryId } },
@@ -20,56 +50,55 @@ export class ProductQuery {
       ...(productTypeId && { productType: { connect: { id: productTypeId } } })
     };
 
-    const product = await this.prisma.product.create({
-      data: productData
+    return await this.prisma.product.create({ data: productData });
+  }
+
+  private async createProductImages(productId: string, imageUrls: string[]) {
+    await Promise.all(
+      imageUrls.map(url =>
+        this.prisma.image.create({
+          data: { url, productId }
+        })
+      )
+    );
+
+    return await this.prisma.image.findMany({
+      where: { productId }
     });
+  }
 
-    // Step 2: Create all product images
-    for (const imageUrl of images) {
-      await this.prisma.image.create({
-        data: {
-          url: imageUrl,
-          productId: product.id
-        }
-      });
-    }
+  private async setDefaultImage(productId: string, images: { id: string; url: string }[], defaultImageUrl?: string) {
+    const defaultImageId = defaultImageUrl
+      ? images.find(img => img.url === defaultImageUrl)?.id || images[0].id
+      : images[0].id;
 
-    // Step 3: Find all images we just created
-    const createdImages = await this.prisma.image.findMany({
-      where: { productId: product.id }
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: { defaultImageId }
     });
+  }
 
-    // Step 4: Set the default image
-    if (createdImages.length > 0) {
-      let defaultImageId: string;
-      
-      if (defaultImageUrl) {
-        // Find image matching the default URL if specified
-        const matchingImage = createdImages.find(img => img.url === defaultImageUrl);
-        defaultImageId = matchingImage ? matchingImage.id : createdImages[0].id;
-      } else {
-        // Otherwise use the first image
-        defaultImageId = createdImages[0].id;
-      }
-
-      // Update the product with the default image
-      await this.prisma.product.update({
-        where: { id: product.id },
-        data: { defaultImageId }
-      });
-    }
-
-    // Step 5: Return the complete product
-    return await this.prisma.product.findUnique({
-      where: { id: product.id },
+  private async getCompleteProduct(productId: string) {
+    const result = await this.prisma.product.findUnique({
+      where: { id: productId },
       include: {
         images: true,
         defaultImage: true,
         brand: { select: { id: true, name: true } },
         productType: { select: { id: true, name: true } },
-        subCategory: { select: { id: true, name: true } }
+        subCategory: {
+          select: {
+            id: true,
+            name: true,
+            category: { select: { id: true, name: true } }
+          }
+        },
+        stock: true
       }
     });
+
+    if (!result) return null;
+    return plainToInstance(ResAllProductDto, result, { excludeExtraneousValues: true });
   }
 
   async findAll(skip?: number, take?: number, sort: SortOrder = SortOrder.DESC) {
@@ -104,7 +133,12 @@ export class ProductQuery {
         brand: { select: { id: true, name: true } },
         productType: { select: { id: true, name: true } },
         subCategory: { select: { id: true, name: true, category: { select: { id: true, name: true } } } },
-        stock: { select: { id: true, quantity: true } }
+        stock: { select: { id: true, quantity: true } },
+        reviews: {
+          include: {
+            user: { select: { id: true, email: true, avatarUrl: true } }
+          }
+        }
       }
     });
   }
@@ -162,7 +196,7 @@ export class ProductQuery {
     const product = await this.prisma.product.findUnique({
       where: { id: productId }
     });
-    
+
     if (!product) {
       return null;
     }
@@ -172,7 +206,7 @@ export class ProductQuery {
       where: { id: productId },
       data: { defaultImageId: null }
     });
-    
+
     // Step 3: Delete all existing images
     await this.prisma.image.deleteMany({
       where: { productId }
@@ -240,8 +274,8 @@ export class ProductQuery {
     }
 
     // Step 2: Check if default image is among those to be deleted
-    const isDefaultImageBeingDeleted = product.defaultImage && 
-                                      imageIds.includes(product.defaultImage.id);
+    const isDefaultImageBeingDeleted = product.defaultImage &&
+      imageIds.includes(product.defaultImage.id);
 
     // Step 3: If default image will be deleted, disconnect it first
     if (isDefaultImageBeingDeleted) {
@@ -390,4 +424,68 @@ export class ProductQuery {
       orderBy: { createdAt: SortOrder.DESC }
     });
   }
+
+  async findBestSellerProducts() {
+    // Get all orders with their items and products
+    const orders = await this.prisma.order.findMany({
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    // Count the frequency of each product in orders
+    const productSales: Record<string, number> = {};
+
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        const productId = item.productId;
+        const quantity = item.quantity || 1;
+
+        if (productSales[productId]) {
+          productSales[productId] += quantity;
+        } else {
+          productSales[productId] = quantity;
+        }
+      });
+    });
+
+    // Convert to array and sort by sales count (descending)
+    const bestSellerIds = Object.entries(productSales)
+      .sort(([, countA], [, countB]) => (countB as number) - (countA as number))
+      .map(([id]) => id);
+
+    if (bestSellerIds.length === 0) {
+      return [];
+    }
+
+    // Fetch product details
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: bestSellerIds },
+        isDeleted: false
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        salePrice: true,
+        isHotSale: true,
+        isFeatured: true,
+        defaultImage: { select: { id: true, url: true } },
+        brand: { select: { id: true, name: true } },
+        productType: { select: { id: true, name: true } },
+        subCategory: { select: { id: true, name: true } },
+        stock: { select: { id: true, quantity: true } }
+      }
+    });
+
+    // Order them according to bestSellerIds
+    const productMap = new Map(products.map(product => [product.id, product]));
+    return bestSellerIds.map(id => productMap.get(id)).filter(Boolean);
+  }
+
 }

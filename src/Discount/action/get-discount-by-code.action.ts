@@ -1,5 +1,5 @@
-import { DiscountQuery } from "@/Discount/queries/discount.query";
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { DiscountQuery } from '@/Discount/queries/discount.query';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class GetDiscountByCodeAction {

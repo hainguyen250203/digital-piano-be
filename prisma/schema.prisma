@@ -74,6 +74,13 @@ enum NotificationType {
   review
 }
 
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
 model User {
   id           String    @id @default(uuid())
   email        String    @unique @db.VarChar(255)
@@ -124,6 +131,9 @@ model Category {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   subCategories SubCategory[]
+
+  @@index([isDeleted])
+  @@index([createdAt])
 }
 
 model SubCategory {
@@ -171,26 +181,52 @@ model Product {
   productTypeId  String?
   brand          Brand?        @relation(fields: [brandId], references: [id])
   brandId        String?
-  images         Image[] // Renamed from Images
+  images         Image[]
   reviews        Review[]
   cartItems      CartItem[]
   orderItems     OrderItem[]
   invoiceItems   InvoiceItem[]
-  stock          Stock? // Renamed from Stocks
+  stock          Stock?
   wishlists      Wishlist[]
+
+  @@index([subCategoryId])
+  @@index([productTypeId])
+  @@index([brandId])
+  @@index([isDeleted])
+  @@index([createdAt])
 }
 
 model Review {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  product   Product  @relation(fields: [productId], references: [id])
-  productId String
-  rating    Int
-  content   String?  @db.Text
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  product     Product   @relation(fields: [productId], references: [id])
+  productId   String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  orderItemId String    @unique
+  rating      Int
+  content     String    @db.Text
+  isDeleted   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model OrderItem {
+  id                String         @id @default(uuid())
+  orderId           String
+  order             Order          @relation(fields: [orderId], references: [id])
+  productId         String
+  product           Product        @relation(fields: [productId], references: [id])
+  quantity          Int
+  price             Float
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  productReturns    ProductReturn[]
+  review            Review?
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([createdAt])
 }
 
 model Brand {
@@ -258,19 +294,6 @@ model Order {
   returns        ProductReturn[]
 }
 
-model OrderItem {
-  id        String          @id @default(uuid())
-  order     Order           @relation(fields: [orderId], references: [id])
-  orderId   String
-  product   Product         @relation(fields: [productId], references: [id])
-  productId String
-  price     Int
-  quantity  Int
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  returns   ProductReturn[]
-}
-
 model Wishlist {
   id        String   @id @default(uuid())
   user      User?    @relation(fields: [userId], references: [id])
@@ -318,13 +341,16 @@ model InvoiceItem {
 }
 
 model Stock {
-  id        String     @id @default(uuid())
-  productId String     @unique
-  product   Product    @relation(fields: [productId], references: [id])
-  quantity  Int        @default(0)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id        String   @id @default(uuid())
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String   @unique
+  quantity  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   logs      StockLog[]
+
+  @@index([productId])
+  @@index([quantity])
 }
 
 model Notification {
@@ -361,16 +387,19 @@ model Discount {
 }
 
 model ProductReturn {
-  id                  String              @id @default(uuid())
-  order               Order               @relation(fields: [orderId], references: [id])
-  orderId             String
-  orderItem           OrderItem           @relation(fields: [orderItemId], references: [id])
-  orderItemId         String
-  reason              String?             @db.Text
-  refundAmount        Int?
-  productReturnStatus ProductReturnStatus
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id                String         @id @default(uuid())
+  orderId           String
+  order             Order          @relation(fields: [orderId], references: [id])
+  orderItem         OrderItem      @relation(fields: [orderItemId], references: [id])
+  orderItemId       String
+  quantity          Int
+  reason            String
+  status            ReturnStatus   @default(PENDING)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  @@index([orderId])
+  @@index([orderItemId])
+  @@index([createdAt])
 }
 
 model StockLog {

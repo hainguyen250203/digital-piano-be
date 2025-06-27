@@ -35,6 +35,6 @@ import { MarkAsReadAction } from './domain/actions/mark-as-read.action';
     MarkAllAsReadAction,
     NotificationService
   ],
-  exports: [NotificationService],
+  exports: [NotificationService, CreateNotificationAction],
 })
 export class NotificationModule { } 

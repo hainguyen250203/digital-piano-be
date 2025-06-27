@@ -94,6 +94,15 @@ export class ProductController {
     return new SuccessResponseDto('Lấy danh sách sản phẩm nổi bật thành công', plainToInstance(ResAllProductDto, products, { excludeExtraneousValues: true }));
   }
 
+  @Get('best-seller')
+  @Public()
+  @ApiOperation({ summary: 'Lấy danh sách sản phẩm bán chạy nhất', description: 'Lấy danh sách các sản phẩm bán chạy nhất, có hỗ trợ phân trang.' })
+  @ApiOkResponse({ type: [ResAllProductDto] })
+  async findBestSellerProducts() {
+    const data = await this.productQuery.findBestSellerProducts();
+    return new SuccessResponseDto('Lấy danh sách sản phẩm bán chạy nhất thành công', plainToInstance(ResAllProductDto, data, { excludeExtraneousValues: true }));
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Lấy chi tiết sản phẩm', description: 'Lấy thông tin chi tiết sản phẩm theo ID.' })
@@ -167,7 +176,6 @@ export class ProductController {
       defaultImage,
       reqCreateProductDto
     );
-
     return new SuccessResponseDto('Tạo sản phẩm thành công', plainToInstance(ResAllProductDto, data, { excludeExtraneousValues: true }));
   }
 
@@ -528,7 +536,7 @@ export class ProductController {
   async deleteProduct(@Param('id') id: string) {
     const data = await this.productQuery.delete(id);
     if (!data) throw new NotFoundException('Sản phẩm không tồn tại');
-    return new SuccessResponseDto('Xóa sản phẩm thành công', null);
+    return new SuccessResponseDto('Xóa sản phẩm thành công', data);
   }
 
   @Delete(':id/images')

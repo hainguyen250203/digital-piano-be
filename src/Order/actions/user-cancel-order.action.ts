@@ -1,8 +1,8 @@
-import { OrderQuery } from "@/Order/queries/order.query";
-import { StockService } from "@/Stock/api/stock.service";
-import { NotificationService } from "@/notification/domain/notification.service";
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { ChangeType, NotificationType, OrderStatus, PaymentStatus, ReferenceType } from "@prisma/client";
+import { OrderQuery } from '@/Order/queries/order.query';
+import { StockService } from '@/Stock/api/stock.service';
+import { NotificationService } from '@/notification/domain/notification.service';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ChangeType, NotificationType, OrderStatus, PaymentStatus, ReferenceType } from '@prisma/client';
 
 /**
  * Action for handling order cancellation initiated by users
@@ -19,7 +19,7 @@ export class UserCancelOrderAction {
     // Validate order exists and can be cancelled
     const order = await this.orderQuery.getOrderById(orderId);
     if (!order) {
-      throw new NotFoundException("Không tìm thấy đơn hàng");
+      throw new NotFoundException('Không tìm thấy đơn hàng');
     }
 
     this.validateOrderCanBeCancelled(order);
@@ -30,11 +30,11 @@ export class UserCancelOrderAction {
 
   private validateOrderCanBeCancelled(order: any): void {
     if (order.orderStatus !== OrderStatus.pending) {
-      throw new BadRequestException("Đơn hàng không thể hủy vì không ở trạng thái chờ xử lý");
+      throw new BadRequestException('Đơn hàng không thể hủy vì không ở trạng thái chờ xử lý');
     }
 
     if (order.paymentStatus !== PaymentStatus.unpaid) {
-      throw new BadRequestException("Đơn hàng đã được thanh toán, không thể hủy");
+      throw new BadRequestException('Đơn hàng đã được thanh toán, không thể hủy');
     }
   }
 
@@ -58,7 +58,7 @@ export class UserCancelOrderAction {
   private async sendCancellationNotifications(orderId: string): Promise<void> {
     // Notify staff and admins
     await this.notificationService.sendNotificationAdminAndStaff(
-      "Đơn hàng đã được hủy",
+      'Đơn hàng đã được hủy',
       `Đơn hàng #${orderId} đã được hủy`,
       NotificationType.order
     );

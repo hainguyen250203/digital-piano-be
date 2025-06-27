@@ -30,7 +30,7 @@ export class NotificationGateway
       const token = client.handshake.auth.token?.split(' ')[1];
       
       if (!token) {
-        this.logger.warn(`Client disconnected: No token provided`);
+        this.logger.warn('Client disconnected: No token provided');
         client.disconnect();
         return;
       }

@@ -16,7 +16,7 @@ export const mailerConfig = (configService: ConfigService): MailerOptions => ({
     from: 'norely@gmail.com'
   },
   template: {
-    dir: process.cwd() + '/src/common/templates', 
+    dir: process.cwd() + '/src/Common/templates',
     adapter: new HandlebarsAdapter(),
     options: {
       strict: true

@@ -7,7 +7,7 @@ export class VerifyOtpAction {
   constructor(
     private readonly authQuery: AuthQuery,
     private readonly jwtService: JwtService
-  ) {}
+  ) { }
   async execute(email: string, otp: string, secret: string, newPassword: string) {
     const user = await this.authQuery.getUserByEmail(email);
     if (!user) throw new NotFoundException('không tìm thấy người dùng');
@@ -39,7 +39,8 @@ export class VerifyOtpAction {
     const updatedUser = await this.authQuery.updatePasswordAndResetOtp(email, hashedPassword);
     const payload = { sub: updatedUser.id, email: updatedUser.email, role: updatedUser.role };
     return {
-      access_token: this.jwtService.sign(payload)
+      accessToken: this.jwtService.sign(payload),
+      role: user.role
     };
   }
 }

@@ -70,7 +70,7 @@ export class NotificationService {
       },
       select: { id: true }
     });
-    
+
     for (const user of staffAndAdmins) {
       await this.create({
         userId: user.id,
@@ -87,7 +87,7 @@ export class NotificationService {
   async sendOrderStatusNotification(userId: string, orderId: string, statusMessage: string, type: NotificationType = NotificationType.order) {
     const title = `Đơn hàng #${orderId}`;
     const content = statusMessage;
-    
+
     return this.create({
       userId,
       title,
@@ -101,10 +101,10 @@ export class NotificationService {
    */
   async notifyOrderToAdmins(orderId: string, statusMessage: string, amount?: number, type: NotificationType = NotificationType.order) {
     const title = `Đơn hàng #${orderId}`;
-    const content = amount 
+    const content = amount
       ? `${statusMessage} với tổng tiền ${amount.toLocaleString('vi-VN')}đ`
       : statusMessage;
-      
+
     return this.sendNotificationAdminAndStaff(title, content, type);
   }
 
@@ -112,21 +112,51 @@ export class NotificationService {
    * Send payment notification
    */
   async notifyPaymentStatus(userId: string, orderId: string, isSuccess: boolean, type: NotificationType = NotificationType.order) {
-    const statusMessage = isSuccess 
+    const statusMessage = isSuccess
       ? `Đơn hàng #${orderId} đã được thanh toán thành công`
       : `Thanh toán đơn hàng #${orderId} thất bại`;
-      
+
     await this.sendOrderStatusNotification(userId, orderId, statusMessage, type);
-    
+
     // Also notify admins
     const adminMessage = isSuccess
       ? `Đơn hàng #${orderId} đã được thanh toán thành công`
       : `Thanh toán đơn hàng #${orderId} thất bại`;
-      
+
     await this.sendNotificationAdminAndStaff(
-      `Trạng thái thanh toán`,
+      'Trạng thái thanh toán',
       adminMessage,
       type
     );
   }
-} 
+
+  async deleteOne(id: string) {
+    // Check if notification exists before attempting to delete
+    const notification = await this.prisma.notification.findUnique({
+      where: { id }
+    });
+
+    if (notification) {
+      await this.prisma.notification.delete({ where: { id } });
+    }
+    // If notification doesn't exist, we silently succeed since the end result is the same
+    // (notification no longer exists in the database)
+  }
+
+  async deleteAllRead(userId: string) {
+    await this.prisma.notification.deleteMany({
+      where: {
+        userId,
+        isRead: true
+      }
+    });
+  }
+
+  async deleteAll(userId: string) {
+    await this.prisma.notification.deleteMany({
+      where: {
+        userId,
+      },
+    });
+  }
+}

@@ -1,4 +1,4 @@
-import { OrderStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
+import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client';
 
 export type CreateOrderItem = {
   productId: string;

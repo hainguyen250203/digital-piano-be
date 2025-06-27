@@ -1,11 +1,11 @@
-import { NotificationService } from "@/notification/domain/notification.service";
-import { UpdateOrderParams } from "@/Order/actions/update-order.params";
-import { OrderQuery } from "@/Order/queries/order.query";
-import { VerifyReturnUrlParams } from "@/Order/queries/params/verify-return-url.params";
-import { PaymentQuery } from "@/Payment/queries/payment.query";
-import { StockService } from "@/Stock/api/stock.service";
-import { Injectable } from "@nestjs/common";
-import { ChangeType, NotificationType, PaymentStatus, ReferenceType } from "@prisma/client";
+import { NotificationService } from '@/notification/domain/notification.service';
+import { UpdateOrderParams } from '@/Order/actions/update-order.params';
+import { OrderQuery } from '@/Order/queries/order.query';
+import { VerifyReturnUrlParams } from '@/Order/queries/params/verify-return-url.params';
+import { PaymentQuery } from '@/Payment/queries/payment.query';
+import { StockService } from '@/Stock/api/stock.service';
+import { Injectable } from '@nestjs/common';
+import { ChangeType, NotificationType, PaymentStatus, ReferenceType } from '@prisma/client';
 
 @Injectable()
 export class VerifyReturnUrlAction {
@@ -18,8 +18,8 @@ export class VerifyReturnUrlAction {
 
   async execute(params: VerifyReturnUrlParams) {
     const verifyReturnUrl = await this.paymentQuery.verifyReturnUrl(params);
+
     if (verifyReturnUrl.isSuccess) {
-      // Thay vì get order trước rồi check paymentStatus, chỉ gọi update có điều kiện
       const orderUpdated = await this.orderQuery.updateOrderIfUnpaid({
         id: params.vnp_TxnRef,
         paymentStatus: PaymentStatus.paid,

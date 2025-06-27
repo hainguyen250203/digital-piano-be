@@ -1,16 +1,38 @@
-import { AddressQuery } from "@/Address/queries/address.query";
-import { CartQuery } from "@/Cart/queries/cart.query";
-import { DiscountQuery } from "@/Discount/queries/discount.query";
-import { NotificationService } from "@/notification/domain/notification.service";
-import { OrderQuery } from "@/Order/queries/order.query";
-import { CreateOrderItem, CreateOrderParams } from "@/Order/queries/params/create-order.params";
-import { BuildPaymentParams } from "@/Payment/queries/params/buil-payment.params";
-import { PaymentQuery } from "@/Payment/queries/payment.query";
-import { PrismaService } from "@/Prisma/prisma.service";
-import { StockService } from "@/Stock/api/stock.service";
-import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
-import { ChangeType, DiscountType, NotificationType, PaymentMethod, ReferenceType } from "@prisma/client";
-import { ReqCreateOrderDto } from "../api/dto/reqCreateOrder.dto";
+import { AddressQuery } from '@/Address/queries/address.query';
+import { CartQuery } from '@/Cart/queries/cart.query';
+import { DiscountQuery } from '@/Discount/queries/discount.query';
+import { NotificationService } from '@/notification/domain/notification.service';
+import { OrderQuery } from '@/Order/queries/order.query';
+import {
+  CreateOrderItem,
+  CreateOrderParams,
+} from '@/Order/queries/params/create-order.params';
+import { PaymentQuery } from '@/Payment/queries/payment.query';
+import { PrismaService } from '@/Prisma/prisma.service';
+import { StockService } from '@/Stock/api/stock.service';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import {
+  ChangeType,
+  Discount,
+  DiscountType,
+  NotificationType,
+  PaymentMethod,
+  ReferenceType,
+} from '@prisma/client';
+import { ReqCreateOrderDto } from '../api/dto/reqCreateOrder.dto';
+
+interface OrderCalculationResult {
+  orderItems: CreateOrderItem[];
+  orderTotal: number;
+  discountId?: string;
+  finalTotal: number;
+  discountAmount: number;
+}
+
 @Injectable()
 export class CreateOrderAction {
   constructor(
@@ -26,55 +48,52 @@ export class CreateOrderAction {
 
   async execute(userId: string, ipAddr: string, dto: ReqCreateOrderDto) {
     try {
+      // Validate address trước khi vào transaction
       await this.validateAddress(userId, dto.addressId);
-      const { orderItems, orderTotal } = await this.prepareOrderItems(userId);
-      const { discountId, finalTotal, discountAmount } = await this.calculateDiscount(dto.discountCode, orderTotal);
-      const order = await this.createOrder(userId, dto, discountId, finalTotal, discountAmount, orderItems, dto.note);
-      await this.cartQuery.clearCart(userId);
-      // TODO: Create payment url
-      if (dto.paymentMethod === PaymentMethod.vnpay) {
-        const buildPaymentParams: BuildPaymentParams = {
-          amount: order.orderTotal,
-          orderId: order.id,
-          orderInfo: `Đơn hàng #${order.id}`,
-          ipAddr: ipAddr,
-        }
-        const paymentUrl = await this.paymentQuery.buildPaymentUrl(buildPaymentParams);
-        return {
-          ...order,
-          paymentUrl,
-        };
-      }
 
-      // Cập nhật kho cho thanh toán tiền mặt
-      if (dto.paymentMethod === PaymentMethod.cash) {
-        for (const item of orderItems) {
-          await this.stockService.updateStock(
-            item.productId,
-            -item.quantity,
-            ChangeType.sale,
-            ReferenceType.order,
-            order.id,
-            `Trừ kho cho đơn hàng ${order.id}`,
-          );
-        }
-      }
+      // Prepare order data trước khi vào transaction
+      const orderData = await this.prepareOrderData(userId, dto.discountCode);
 
-      await this.notificationService.sendNotificationAdminAndStaff(
-        `Đơn hàng mới #${order.id}`,
-        `Đơn hàng #${order.id} với tổng tiền ${finalTotal.toLocaleString('vi-VN')}đ`,
-        NotificationType.order
-      );
-      //cập nhật kho
-      return order;
+      // Chỉ giữ các thao tác cần transaction trong $transaction
+      const order = await this.prisma.$transaction(async (prisma) => {
+        try {
+          const order = await this.createOrder(userId, dto, orderData);
+
+          // Chỉ cập nhật stock nếu thanh toán tiền mặt
+          if (dto.paymentMethod === PaymentMethod.cash) {
+            await this.updateStock(orderData.orderItems, order.id);
+          }
+
+          return order;
+        } catch (error) {
+          throw error;
+        }
+      }, {
+        timeout: 60000
+      });
+
+      // Các thao tác sau transaction
+      await this.handlePostOrderOperations(order, orderData, dto, ipAddr);
+
+      return await this.formatOrderResponse(order, dto.paymentMethod, ipAddr);
     } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Lỗi khi tạo đơn hàng');
+      this.handleError(error);
     }
   }
 
+  private async prepareOrderData(
+    userId: string,
+    discountCode?: string,
+  ): Promise<OrderCalculationResult> {
+    const { orderItems, orderTotal } = await this.prepareOrderItems(userId);
+    const discountResult = await this.calculateDiscount(discountCode, orderTotal);
+
+    return {
+      orderItems,
+      orderTotal,
+      ...discountResult,
+    };
+  }
 
   private async validateAddress(userId: string, addressId: string): Promise<void> {
     const address = await this.addressQuery.findById(addressId);
@@ -83,20 +102,27 @@ export class CreateOrderAction {
     }
   }
 
-  private async prepareOrderItems(userId: string): Promise<{ orderItems: CreateOrderItem[]; orderTotal: number }> {
+  private async prepareOrderItems(userId: string): Promise<{
+    orderItems: CreateOrderItem[];
+    orderTotal: number;
+  }> {
     const cart = await this.cartQuery.getCart(userId);
-    if (!cart || cart.items.length === 0) {
+    if (!cart?.items.length) {
       throw new BadRequestException('Giỏ hàng trống');
     }
 
-    let orderTotal = 0;
     const orderItems: CreateOrderItem[] = [];
+    let orderTotal = 0;
+
+    const productIds = cart.items.map((item) => item.product.id);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+    });
+
+    const productMap = new Map(products.map((p) => [p.id, p]));
 
     for (const item of cart.items) {
-      const product = await this.prisma.product.findUnique({
-        where: { id: item.product.id },
-      });
-
+      const product = productMap.get(item.product.id);
       if (!product) {
         throw new BadRequestException(`Sản phẩm ${item.product.id} không tồn tại`);
       }
@@ -106,7 +132,7 @@ export class CreateOrderAction {
 
       orderItems.push({
         productId: item.product.id,
-        price: price,
+        price,
         quantity: item.quantity,
       });
     }
@@ -116,65 +142,158 @@ export class CreateOrderAction {
 
   private async calculateDiscount(
     discountCode: string | undefined,
-    orderTotal: number
-  ): Promise<{ discountId: string | undefined; finalTotal: number; discountAmount: number }> {
-    let discountId: string | undefined = undefined;
-    let discountAmount = 0;
-
+    orderTotal: number,
+  ): Promise<{
+    discountId: string | undefined;
+    finalTotal: number;
+    discountAmount: number;
+  }> {
     if (!discountCode) {
-      return { discountId, finalTotal: orderTotal, discountAmount };
+      return { discountId: undefined, finalTotal: orderTotal, discountAmount: 0 };
     }
 
-    const discount = await this.discountQuery.getDiscountByCode(discountCode);
-    if (!discount || !discount.isActive) {
-      return { discountId, finalTotal: orderTotal, discountAmount };
-    }
-
-    if (discount.minOrderTotal && orderTotal < discount.minOrderTotal) {
-      throw new BadRequestException(`Tổng đơn hàng phải tối thiểu ${discount.minOrderTotal.toLocaleString('vi-VN')}đ`);
-    }
-
-    discountId = discount.id;
-    discountAmount = this.calculateDiscountAmount(discount, orderTotal);
+    const discount = await this.validateAndGetDiscount(discountCode, orderTotal);
+    const discountAmount = this.calculateDiscountAmount(discount, orderTotal);
 
     return {
-      discountId,
+      discountId: discount.id,
       finalTotal: orderTotal - discountAmount,
-      discountAmount
+      discountAmount,
     };
   }
 
-  private calculateDiscountAmount(discount: any, orderTotal: number): number {
-    let amount = discount.discountType === DiscountType.percentage
-      ? Math.floor(orderTotal * discount.value / 100)
-      : discount.value;
+  private async validateAndGetDiscount(
+    discountCode: string,
+    orderTotal: number,
+  ): Promise<Discount> {
+    const now = new Date();
+    const discount = await this.discountQuery.getDiscountByCode(discountCode);
 
-    if (discount.maxDiscountValue) {
-      amount = Math.min(amount, discount.maxDiscountValue);
+    if (!discount?.isActive) {
+      throw new BadRequestException('Mã giảm giá không hoạt động');
     }
 
-    return amount;
+    if (discount.startDate && discount.startDate > now) {
+      throw new BadRequestException('Mã giảm giá chưa bắt đầu');
+    }
+
+    if (discount.endDate && discount.endDate < now) {
+      throw new BadRequestException('Mã giảm giá đã hết hạn');
+    }
+
+    if (discount.maxUses && discount.usedCount >= discount.maxUses) {
+      throw new BadRequestException('Mã giảm giá đã được sử dụng hết lượt');
+    }
+
+    if (discount.minOrderTotal && orderTotal < discount.minOrderTotal) {
+      throw new BadRequestException(
+        `Tổng đơn hàng phải tối thiểu ${discount.minOrderTotal.toLocaleString('vi-VN')}đ`,
+      );
+    }
+
+    return discount;
+  }
+
+  private calculateDiscountAmount(discount: Discount, orderTotal: number): number {
+    const baseAmount =
+      discount.discountType === DiscountType.percentage
+        ? Math.floor((orderTotal * discount.value) / 100)
+        : discount.value;
+
+    return discount.maxDiscountValue
+      ? Math.min(baseAmount, discount.maxDiscountValue)
+      : baseAmount;
   }
 
   private async createOrder(
     userId: string,
     dto: ReqCreateOrderDto,
-    discountId: string | undefined,
-    orderTotal: number,
-    discountAmount: number,
-    orderItems: CreateOrderItem[],
-    note?: string
+    orderData: OrderCalculationResult,
   ) {
     const createOrderParams: CreateOrderParams = {
       userId,
       addressId: dto.addressId,
-      discountId,
+      discountId: orderData.discountId,
       paymentMethod: dto.paymentMethod,
-      orderTotal,
-      discountAmount: discountAmount > 0 ? discountAmount : undefined,
-      items: orderItems,
-      note,
+      orderTotal: orderData.orderTotal,
+      discountAmount: orderData.discountAmount > 0 ? orderData.discountAmount : undefined,
+      items: orderData.orderItems,
+      note: dto.note,
     };
+
     return await this.orderQuery.createOrder(createOrderParams);
+  }
+
+  private async handlePostOrderOperations(
+    order: any,
+    orderData: OrderCalculationResult,
+    dto: ReqCreateOrderDto,
+    ipAddr: string,
+  ): Promise<void> {
+    try {
+      if (order.discountId) {
+        await this.discountQuery.updateUsedCount(order.discountId);
+      }
+
+      await this.cartQuery.clearCart(order.userId);
+
+      await this.notificationService.sendNotificationAdminAndStaff(
+        `Đơn hàng mới #${order.id}`,
+        `Đơn hàng #${order.id} với tổng tiền ${orderData.finalTotal.toLocaleString('vi-VN')}đ`,
+        NotificationType.order,
+      );
+    } catch (error) {
+      // Không throw error ở đây vì đơn hàng đã được tạo thành công
+    }
+  }
+
+  private async updateStock(
+    items: CreateOrderItem[],
+    orderId: string,
+  ): Promise<void> {
+    try {
+      await Promise.all(
+        items.map((item) =>
+          this.stockService.updateStock(
+            item.productId,
+            -item.quantity,
+            ChangeType.sale,
+            ReferenceType.order,
+            orderId,
+            `Trừ kho cho đơn hàng ${orderId}`,
+          ),
+        ),
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async formatOrderResponse(
+    order: any,
+    paymentMethod: PaymentMethod,
+    ipAddr: string,
+  ) {
+    try {
+      if (paymentMethod === PaymentMethod.vnpay) {
+        const paymentUrl = await this.paymentQuery.buildPaymentUrl({
+          amount: order.orderTotal,
+          orderId: order.id,
+          orderInfo: `Đơn hàng #${order.id}`,
+          ipAddr,
+        });
+        return { ...order, paymentUrl };
+      }
+      return order;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private handleError(error: any): never {
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    throw new InternalServerErrorException('Lỗi khi tạo đơn hàng');
   }
 }

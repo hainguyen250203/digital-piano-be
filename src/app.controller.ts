@@ -1,4 +1,5 @@
 import { Public } from '@/Auth/decorators/public.decorator';
+import { PrismaService } from '@/Prisma/prisma.service';
 import { Controller, Get } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -6,8 +7,10 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 @Public()
 @Controller()
 export class AppController {
+  constructor(private readonly prismaService: PrismaService) { }
+
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get application information',
     description: 'Returns detailed information about the Digital Piano E-commerce API. Access this endpoint at /api/'
   })
@@ -59,16 +62,31 @@ export class AppController {
   }
 
   @Get('health')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Check API health status',
-    description: 'Returns the current health status of the API. Access this endpoint at /api/health'
+    description: 'Returns the current health status of the API and checks database connection. Access this endpoint at /api/health'
   })
-  getHealthStatus() {
-    return {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      baseUrl: '/api'
-    };
+  async getHealthStatus() {
+    // Check and reset database connection if needed
+    try {
+      await this.prismaService.cleanDatabase();
+
+      return {
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        baseUrl: '/api',
+        database: 'connected'
+      };
+    } catch (error) {
+      return {
+        status: 'degraded',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        baseUrl: '/api',
+        database: 'connection_issue',
+        error: error.message
+      };
+    }
   }
 } 

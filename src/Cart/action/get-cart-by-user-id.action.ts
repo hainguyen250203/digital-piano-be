@@ -1,5 +1,5 @@
-import { CartQuery } from "@/Cart/queries/cart.query";
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { CartQuery } from '@/Cart/queries/cart.query';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class GetCartByUserIdAction {
